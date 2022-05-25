@@ -3,9 +3,11 @@ package space.davids_digital.neurobots.model;
 import java.awt.*;
 
 public class Creature {
+    private NeuralNetwork neuralNetwork;
     private Color color;
     private Point position;
     private double visionDistance;
+    private double raysNumber;
     private double rotation;
     private double fitness;
     private double health;
@@ -13,23 +15,43 @@ public class Creature {
     private double fov;
 
     public Creature(
+            NeuralNetwork neuralNetwork,
             Color color,
             Point position,
             double visionDistance,
+            double raysNumber,
             double rotation,
             double fitness,
             double health,
             double radius,
             double fov
     ) {
+        this.neuralNetwork = neuralNetwork;
         this.color = color;
         this.position = position;
         this.visionDistance = visionDistance;
+        this.raysNumber = raysNumber;
         this.rotation = rotation;
         this.fitness = fitness;
         this.health = health;
         this.radius = radius;
         this.fov = fov;
+    }
+
+    public NeuralNetwork getNeuralNetwork() {
+        return neuralNetwork;
+    }
+
+    public void setNeuralNetwork(NeuralNetwork neuralNetwork) {
+        this.neuralNetwork = neuralNetwork;
+    }
+
+    public double getRaysNumber() {
+        return raysNumber;
+    }
+
+    public void setRaysNumber(double raysNumber) {
+        this.raysNumber = raysNumber;
     }
 
     public double getVisionDistance() {

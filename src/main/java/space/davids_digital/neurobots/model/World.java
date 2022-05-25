@@ -20,6 +20,10 @@ public class World {
 
     }
 
+    public void addCreature(Creature creature) {
+        creatures.add(creature);
+    }
+
     public int getWidth() {
         return width;
     }
