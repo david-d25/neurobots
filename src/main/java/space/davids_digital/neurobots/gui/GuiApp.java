@@ -43,24 +43,13 @@ public class GuiApp {
         world.getWalls().add(new Wall(new DoublePoint(0, world.getHeight()), new DoublePoint(world.getWidth(), world.getHeight())));
         world.getWalls().add(new Wall(new DoublePoint(world.getWidth(), world.getHeight()), new DoublePoint(world.getWidth(), 0)));
         world.getWalls().add(new Wall(new DoublePoint(world.getWidth(), 0), new DoublePoint(0, 0)));
-        world.getCreatures().add(new Creature(
-                new NeuralNetwork(11, 1, 11, 3, -0.5, 0.5),
-                Color.green,
-                new DoublePoint(40, 40),
-                500, 10, 0, 3, 12, 12, 30, Math.toRadians(45)
-        ));
-        world.getCreatures().add(new Creature(
-                new NeuralNetwork(11, 1, 11, 3, -0.5, 0.5),
-                Color.green,
-                new DoublePoint(70, 40),
-                500, 10, 0, 3, 12, 12, 30, Math.toRadians(45)
-        ));
-        world.getCreatures().add(new Creature(
-                new NeuralNetwork(11, 1, 11, 3, -0.5, 0.5),
-                Color.green,
-                new DoublePoint(120, 40),
-                500, 10, 0, 3, 12, 12, 30, Math.toRadians(45)
-        ));
+        for (int i = 0; i < 30; i++)
+            world.getCreatures().add(new Creature(
+                    new NeuralNetwork(21, 1, 11, 3, -0.25, 0.25),
+                    Color.green,
+                    new DoublePoint(100 + 10*i, 40),
+                    500, 10, 0, 3, 12, 12, 30, Math.toRadians(45)
+            ));
     }
 
     private void initUpdating() {

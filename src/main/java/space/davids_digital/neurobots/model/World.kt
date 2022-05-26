@@ -2,7 +2,6 @@ package space.davids_digital.neurobots.model
 
 import space.davids_digital.neurobots.geom.GeometryUtils
 import space.davids_digital.neurobots.geom.Line
-import java.util.function.Consumer
 import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sign
@@ -14,7 +13,7 @@ class World(var width: Int, var height: Int) {
     val bullets: List<Bullet> = ArrayList()
 
     fun update(delta: Double) {
-        creatures.forEach(Consumer { c: Creature -> c.update(this, delta) })
+        creatures.forEach { c: Creature -> c.update(this, delta) }
 
         creatures.filter(Creature::isAlive).forEach { c1 ->
             creatures.filter(Creature::isAlive).filter { it !== c1 }.forEach { c2 ->
@@ -29,6 +28,14 @@ class World(var width: Int, var height: Int) {
                     c2.position.y += offset * sin
                 }
             }
+            if (c1.position.x < c1.radius)
+                c1.position.x = c1.radius
+            if (c1.position.y < c1.radius)
+                c1.position.y = c1.radius
+            if (c1.position.x > width - c1.radius)
+                c1.position.x = width.toDouble() - c1.radius
+            if (c1.position.y > height - c1.radius)
+                c1.position.y = height.toDouble() - c1.radius
         }
 
         creatures.filter(Creature::isAlive).forEach { creature ->
@@ -56,5 +63,7 @@ class World(var width: Int, var height: Int) {
                 }
             }
         }
+
+        creatures.forEach { c: Creature -> c.updateRayData(this) }
     }
 }

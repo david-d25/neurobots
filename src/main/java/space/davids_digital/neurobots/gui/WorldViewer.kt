@@ -1,146 +1,146 @@
-package space.davids_digital.neurobots.gui;
+package space.davids_digital.neurobots.gui
 
-import space.davids_digital.neurobots.model.World;
+import space.davids_digital.neurobots.model.Creature
+import space.davids_digital.neurobots.model.Wall
+import space.davids_digital.neurobots.model.World
+import java.awt.BasicStroke
+import java.awt.Color
+import java.awt.Graphics
+import java.awt.Graphics2D
+import java.awt.event.KeyEvent
+import java.awt.event.KeyListener
+import java.awt.event.MouseWheelEvent
+import java.awt.event.MouseWheelListener
+import java.awt.geom.AffineTransform
+import java.util.function.Consumer
+import javax.swing.JPanel
+import kotlin.math.cos
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.sin
 
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
-import java.awt.event.MouseWheelEvent;
-import java.awt.event.MouseWheelListener;
-import java.awt.geom.AffineTransform;
-import java.util.HashSet;
-import java.util.Set;
+class WorldViewer(var world: World) : JPanel(), KeyListener, MouseWheelListener {
+    private var cameraX = 0.0
+    private var cameraY = 0.0
+    private var viewportHeight = 800.0
+    private val cameraTransform = AffineTransform()
+    private val pressedKeys: MutableSet<Int> = HashSet()
 
-import static java.lang.Math.cos;
-import static java.lang.Math.sin;
-
-public class WorldViewer extends JPanel implements KeyListener, MouseWheelListener {
-    private World world;
-    private double cameraX = 0;
-    private double cameraY = 0;
-    private double viewportHeight = 800;
-    private final AffineTransform cameraTransform = new AffineTransform();
-    private final Set<Integer> pressedKeys = new HashSet<>();
-
-    public WorldViewer(World world) {
-        this.world = world;
-        addMouseWheelListener(this);
-        addKeyListener(this);
-        setFocusable(true);
-        updateCameraTransform();
+    init {
+        addMouseWheelListener(this)
+        addKeyListener(this)
+        isFocusable = true
+        updateCameraTransform()
     }
 
-    @Override
-    public void paintComponent(Graphics graphics) {
-        super.paintComponent(graphics);
-
-        Graphics2D g = (Graphics2D) graphics;
-        g.setColor(Color.GRAY);
-        g.fillRect(0, 0, getWidth(), getHeight());
-
-        g.setTransform(cameraTransform);
-        g.setColor(Color.LIGHT_GRAY);
-        g.fillRect(0, 0, world.getWidth(), world.getHeight());
-
-        g.setStroke(new BasicStroke(2));
-
-        g.setColor(Color.BLACK);
-        world.getWalls().forEach(wall -> g.drawLine(
-                (int) wall.getPointA().getX(), (int) wall.getPointA().getY(),
-                (int) wall.getPointB().getX(), (int) wall.getPointB().getY()
-        ));
+    public override fun paintComponent(graphics: Graphics) {
+        super.paintComponent(graphics)
+        val g = graphics as Graphics2D
+        g.color = Color.GRAY
+        g.fillRect(0, 0, width, height)
+        g.transform = cameraTransform
+        g.color = Color.LIGHT_GRAY
+        g.fillRect(0, 0, world.width, world.height)
+        g.stroke = BasicStroke(2f)
+        g.color = Color.BLACK
+        world.walls.forEach(Consumer { wall: Wall ->
+            g.drawLine(
+                wall.pointA.x.toInt(),
+                wall.pointA.y.toInt(),
+                wall.pointB.x.toInt(),
+                wall.pointB.y.toInt()
+            )
+        })
 
         // Creature
-        world.getCreatures().forEach(creature -> {
-            int x = (int) creature.getPosition().getX();
-            int y = (int) creature.getPosition().getY();
-            double radius = creature.getRadius();
-            double angle = creature.getAngle();
-
-            g.setColor(creature.getColor());
-            g.fillArc(x - (int) radius, y - (int) radius, (int) creature.getRadius()*2, (int) creature.getRadius()*2, 0, 360);
-            g.setColor(creature.getColor().darker());
-            g.drawArc(x - (int) radius, y - (int) radius, (int) creature.getRadius()*2, (int) creature.getRadius()*2, 0, 360);
+        world.creatures.forEach(Consumer { creature: Creature ->
+            val x = creature.position.x.toInt()
+            val y = creature.position.y.toInt()
+            val radius = creature.radius
+            val angle = creature.angle
+            g.color = creature.color
+            g.fillArc(
+                x - radius.toInt(),
+                y - radius.toInt(),
+                creature.radius.toInt() * 2,
+                creature.radius.toInt() * 2,
+                0,
+                360
+            )
+            g.color = creature.color.darker()
+            g.drawArc(
+                x - radius.toInt(),
+                y - radius.toInt(),
+                creature.radius.toInt() * 2,
+                creature.radius.toInt() * 2,
+                0,
+                360
+            )
             g.fillPolygon(
-                    new int[] {
-                            (int) (x + 0.5*radius*cos(angle + 0.8)),
-                            (int) (x + 0.8*radius*cos(angle)),
-                            (int) (x + 0.5*radius*cos(angle - 0.8))
-                    },
-                    new int[] {
-                            (int) (y + 0.5*radius*sin(angle + 0.8)),
-                            (int) (y + 0.8*radius*sin(angle)),
-                            (int) (y + 0.5*radius*sin(angle - 0.8)),
-                    },
-                    3
-            );
+                intArrayOf(
+                    (x + 0.5 * radius * cos(angle + 0.8)).toInt(),
+                    (x + 0.8 * radius * cos(angle)).toInt(),
+                    (x + 0.5 * radius * cos(angle - 0.8)).toInt()
+                ),
+                intArrayOf(
+                    (y + 0.5 * radius * sin(angle + 0.8)).toInt(),
+                    (y + 0.8 * radius * sin(angle)).toInt(),
+                    (y + 0.5 * radius * sin(angle - 0.8)).toInt()
+                ),
+                3
+            )
 
             // Rays
-            for (int rayId = 0; rayId < creature.getRaysNumber(); rayId++) {
-                double rayLength = creature.getWallRayData()[rayId];
-                g.setColor(new Color(0, 0, 1, (float) (0.25 + 0.75 * rayLength)));
-                double rayAngle = angle - creature.getFov() / 2 + creature.getFov() / creature.getRaysNumber() * (rayId + 0.5);
+            for (rayId in 0 until creature.raysNumber) {
+                val isCreatureRay = creature.creatureRayData[rayId] > creature.wallRayData[rayId]
+                val rayLength = if (isCreatureRay) creature.creatureRayData[rayId] else creature.wallRayData[rayId]
+                if (creature.creatureRayData[rayId] == 0.0 && creature.wallRayData[rayId] == 0.0)
+                    g.color = Color(0f, 0f, 0f, .05f)
+                else
+                    g.color = Color(if (isCreatureRay) 1f else 0f, 0f, if (isCreatureRay) 0f else 1f, (0.25 + 0.75 * rayLength).toFloat())
+                val rayAngle = angle - creature.fov / 2 + creature.fov / creature.raysNumber * (rayId + 0.5)
                 g.drawLine(
-                        (int) (x + cos(rayAngle) * radius),
-                        (int) (y + sin(rayAngle) * radius),
-                        (int) (x + cos(rayAngle) * (radius + creature.getVisionDistance() * (1 - rayLength))),
-                        (int) (y + sin(rayAngle) * (radius + creature.getVisionDistance() * (1 - rayLength)))
-                );
+                    (x + cos(rayAngle) * radius).toInt(),
+                    (y + sin(rayAngle) * radius).toInt(),
+                    (x + cos(rayAngle) * (radius + creature.visionDistance * (1 - rayLength))).toInt(),
+                    (y + sin(rayAngle) * (radius + creature.visionDistance * (1 - rayLength))).toInt()
+                )
             }
-        });
+        })
     }
 
-    public void update(double delta) {
-        if (pressedKeys.contains(KeyEvent.VK_RIGHT))
-            moveCamera(delta*viewportHeight/1000, 0);
-        if (pressedKeys.contains(KeyEvent.VK_LEFT))
-            moveCamera(-delta*viewportHeight/1000, 0);
-        if (pressedKeys.contains(KeyEvent.VK_DOWN))
-            moveCamera(0, delta*viewportHeight/1000);
-        if (pressedKeys.contains(KeyEvent.VK_UP))
-            moveCamera(0, -delta*viewportHeight/1000);
+    fun update(delta: Double) {
+        if (pressedKeys.contains(KeyEvent.VK_RIGHT)) moveCamera(delta * viewportHeight / 1000, 0.0)
+        if (pressedKeys.contains(KeyEvent.VK_LEFT)) moveCamera(-delta * viewportHeight / 1000, 0.0)
+        if (pressedKeys.contains(KeyEvent.VK_DOWN)) moveCamera(0.0, delta * viewportHeight / 1000)
+        if (pressedKeys.contains(KeyEvent.VK_UP)) moveCamera(0.0, -delta * viewportHeight / 1000)
     }
 
-    public void moveCamera(double dx, double dy) {
-        cameraX += dx;
-        cameraY += dy;
-        updateCameraTransform();
+    fun moveCamera(dx: Double, dy: Double) {
+        cameraX += dx
+        cameraY += dy
+        updateCameraTransform()
     }
 
-    public World getWorld() {
-        return world;
+    override fun keyTyped(e: KeyEvent) {}
+    override fun keyPressed(e: KeyEvent) {
+        pressedKeys.add(e.keyCode)
     }
 
-    public void setWorld(World world) {
-        this.world = world;
+    override fun keyReleased(e: KeyEvent) {
+        pressedKeys.remove(e.keyCode)
     }
 
-    @Override
-    public void keyTyped(KeyEvent e) {}
-
-    @Override
-    public void keyPressed(KeyEvent e) {
-        pressedKeys.add(e.getKeyCode());
+    override fun mouseWheelMoved(e: MouseWheelEvent) {
+        viewportHeight += e.preciseWheelRotation * 100
+        updateCameraTransform()
     }
 
-    @Override
-    public void keyReleased(KeyEvent e) {
-        pressedKeys.remove(e.getKeyCode());
-    }
-
-    @Override
-    public void mouseWheelMoved(MouseWheelEvent e) {
-        viewportHeight += e.getPreciseWheelRotation()*100;
-        updateCameraTransform();
-    }
-
-    private void updateCameraTransform() {
-        double scale = getHeight()/viewportHeight;
-
-        cameraTransform.setToIdentity();
-        cameraTransform.translate(getWidth()/2.0, getHeight()/2.0);
-        cameraTransform.scale(scale, scale);
-        cameraTransform.translate(-cameraX*scale, -cameraY*scale);
+    private fun updateCameraTransform() {
+        val scale = height / viewportHeight
+        cameraTransform.setToIdentity()
+        cameraTransform.translate(width / 2.0, height / 2.0)
+        cameraTransform.scale(scale, scale)
+        cameraTransform.translate(-cameraX * scale, -cameraY * scale)
     }
 }
