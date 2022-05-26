@@ -1,9 +1,64 @@
 package space.davids_digital.neurobots.geom;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 
 public class GeometryUtils {
+    public static DoublePoint getLinePerpendicularIntersectionPoint(Line line, DoublePoint point) {
+        double angleRatio = (line.getPointB().getY() - line.getPointA().getY()) / (line.getPointB().getX() - line.getPointA().getX());
+        if (Double.isInfinite(angleRatio)) {
+            DoublePoint intersection = new DoublePoint(line.getPointA().getX(), point.getY());
+            double avgY = (line.getPointA().getY() + line.getPointB().getY()) / 2;
+            double height = Math.abs(line.getPointA().getY() - line.getPointB().getY());
+            if (Math.abs(intersection.getY() - avgY) <= height/2)
+                return intersection;
+            return null;
+        }
+
+        double wallLineOffset = line.getPointA().getY() - angleRatio * line.getPointA().getX();
+        double perpendicularOffset = point.getY() + angleRatio * point.getX();
+        DoublePoint intersection = new DoublePoint();
+        if (angleRatio == 0)
+            intersection.setX(point.getX());
+        else
+            intersection.setX((perpendicularOffset - wallLineOffset) / 2 * angleRatio);
+        intersection.setY(angleRatio * intersection.getX() + wallLineOffset);
+        DoublePoint lineAabb = new DoublePoint(
+                Math.abs(line.getPointA().getX() - line.getPointB().getX()),
+                Math.abs(line.getPointA().getY() - line.getPointB().getY())
+        );
+        if (Math.abs(intersection.getX() - line.getMiddle().getX()) <= lineAabb.getX()/2 && Math.abs(intersection.getY()) - line.getMiddle().getY() <= lineAabb.getY()/2)
+            return intersection;
+        return null;
+    }
+
+    public static Set<DoublePoint> intersections(Line line, Circle circle) {
+        DoublePoint v1 = line.getPointB().minus(line.getPointA());
+        DoublePoint v2 = line.getPointA().minus(circle.getPosition());
+        double b = -2 * (v1.getX() * v2.getX() + v1.getY() * v2.getY());
+        double c = 2 * (v1.getX() * v1.getX() + v1.getY() * v1.getY());
+        double d = Math.sqrt(b * b - 2 * c * (v2.getX() * v2.getX() + v2.getY() * v2.getY() - circle.getRadius() * circle.getRadius()));
+        if (Double.isNaN(d))
+            return Collections.emptySet();
+        double u1 = (b - d) / c;
+        double u2 = (b + d) / c;
+        Set<DoublePoint> result = new HashSet<>();
+        if (u1 <= 1 && u1 >= 0) {
+            result.add(new DoublePoint(
+                    line.getPointA().getX() + v1.getX() * u1,
+                    line.getPointA().getY() + v1.getY() * u1
+            ));
+        }
+        if (u2 <= 1 && u2 >= 0) {
+            result.add(new DoublePoint(
+                    line.getPointA().getX() + v1.getX() * u2,
+                    line.getPointA().getY() + v1.getY() * u2
+            ));
+        }
+        return result;
+    }
+
     public static Set<DoublePoint> intersections(Line lineA, Line lineB) {
         double angle1Ratio = (lineA.getPointB().getY() - lineA.getPointA().getY()) / (lineA.getPointB().getX() - lineA.getPointA().getX());
         double angle2Ratio = (lineB.getPointB().getY() - lineB.getPointA().getY()) / (lineB.getPointB().getX() - lineB.getPointA().getX());
