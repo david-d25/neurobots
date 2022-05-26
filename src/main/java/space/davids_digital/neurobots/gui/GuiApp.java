@@ -1,5 +1,6 @@
 package space.davids_digital.neurobots.gui;
 
+import space.davids_digital.neurobots.geom.DoublePoint;
 import space.davids_digital.neurobots.model.Creature;
 import space.davids_digital.neurobots.model.NeuralNetwork;
 import space.davids_digital.neurobots.model.Wall;
@@ -38,15 +39,27 @@ public class GuiApp {
 
     private void initWorld() {
         world = new World(1200, 800);
-        world.getWalls().add(new Wall(new Point(0, 0), new Point(0, world.getHeight())));
-        world.getWalls().add(new Wall(new Point(0, world.getHeight()), new Point(world.getWidth(), world.getHeight())));
-        world.getWalls().add(new Wall(new Point(world.getWidth(), world.getHeight()), new Point(world.getWidth(), 0)));
-        world.getWalls().add(new Wall(new Point(world.getWidth(), 0), new Point(0, 0)));
+        world.getWalls().add(new Wall(new DoublePoint(0, 0), new DoublePoint(0, world.getHeight())));
+        world.getWalls().add(new Wall(new DoublePoint(0, world.getHeight()), new DoublePoint(world.getWidth(), world.getHeight())));
+        world.getWalls().add(new Wall(new DoublePoint(world.getWidth(), world.getHeight()), new DoublePoint(world.getWidth(), 0)));
+        world.getWalls().add(new Wall(new DoublePoint(world.getWidth(), 0), new DoublePoint(0, 0)));
         world.getCreatures().add(new Creature(
-                new NeuralNetwork(11, 1, 11, 3, -1, 1),
+                new NeuralNetwork(11, 1, 11, 3, -0.5, 0.5),
                 Color.green,
-                new Point(40, 40),
-                100, 10, 0, 3, 12, 12, 30, Math.toRadians(45)
+                new DoublePoint(40, 40),
+                500, 10, 0, 3, 12, 12, 30, Math.toRadians(45)
+        ));
+        world.getCreatures().add(new Creature(
+                new NeuralNetwork(11, 1, 11, 3, -0.5, 0.5),
+                Color.green,
+                new DoublePoint(70, 40),
+                500, 10, 0, 3, 12, 12, 30, Math.toRadians(45)
+        ));
+        world.getCreatures().add(new Creature(
+                new NeuralNetwork(11, 1, 11, 3, -0.5, 0.5),
+                Color.green,
+                new DoublePoint(120, 40),
+                500, 10, 0, 3, 12, 12, 30, Math.toRadians(45)
         ));
     }
 

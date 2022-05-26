@@ -1,26 +1,11 @@
-package space.davids_digital.neurobots.geom;
+package space.davids_digital.neurobots.geom
 
-public class DoublePoint {
-    private double x, y;
+import kotlin.math.pow
+import kotlin.math.sqrt
 
-    public DoublePoint(double x, double y) {
-        this.x = x;
-        this.y = y;
-    }
+class DoublePoint(var x: Double = 0.0, var y: Double = 0.0) {
+    fun distance(other: DoublePoint) = sqrt((x - other.x).pow(2) + (y - other.y).pow(2))
 
-    public double getX() {
-        return x;
-    }
-
-    public void setX(double x) {
-        this.x = x;
-    }
-
-    public double getY() {
-        return y;
-    }
-
-    public void setY(double y) {
-        this.y = y;
-    }
+    operator fun plus(other: DoublePoint) = DoublePoint(x + other.x, y + other.y)
+    operator fun minus(other: DoublePoint) = DoublePoint(x - other.x, y - other.y)
 }

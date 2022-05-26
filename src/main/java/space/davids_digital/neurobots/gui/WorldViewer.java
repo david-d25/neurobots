@@ -47,14 +47,14 @@ public class WorldViewer extends JPanel implements KeyListener, MouseWheelListen
 
         g.setColor(Color.BLACK);
         world.getWalls().forEach(wall -> g.drawLine(
-                wall.getPointA().x, wall.getPointA().y,
-                wall.getPointB().x, wall.getPointB().y
+                (int) wall.getPointA().getX(), (int) wall.getPointA().getY(),
+                (int) wall.getPointB().getX(), (int) wall.getPointB().getY()
         ));
 
         // Creature
         world.getCreatures().forEach(creature -> {
-            int x = creature.getPosition().x;
-            int y = creature.getPosition().y;
+            int x = (int) creature.getPosition().getX();
+            int y = (int) creature.getPosition().getY();
             double radius = creature.getRadius();
             double angle = creature.getAngle();
 

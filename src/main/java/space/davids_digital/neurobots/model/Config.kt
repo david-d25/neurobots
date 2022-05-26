@@ -1,5 +1,3 @@
-package space.davids_digital.neurobots.model;
+package space.davids_digital.neurobots.model
 
-public class Config {
-    
-}
+class Config 
