@@ -1,28 +1,40 @@
 package space.davids_digital.neurobots.model;
 
+import space.davids_digital.neurobots.geom.DoublePoint;
+import space.davids_digital.neurobots.geom.GeometryUtils;
+import space.davids_digital.neurobots.geom.Line;
+
 import java.awt.*;
+import java.util.Arrays;
+import java.util.Set;
+
+import static java.lang.Math.*;
 
 public class Creature {
     private NeuralNetwork neuralNetwork;
     private Color color;
     private Point position;
     private double visionDistance;
-    private double raysNumber;
-    private double rotation;
+    private int raysNumber;
+    private double angle;
     private double fitness;
-    private double health;
+    private double energy;
+    private double maxEnergy;
     private double radius;
     private double fov;
+
+    private final transient double[] wallRayData;
 
     public Creature(
             NeuralNetwork neuralNetwork,
             Color color,
             Point position,
             double visionDistance,
-            double raysNumber,
-            double rotation,
+            int raysNumber,
+            double angle,
             double fitness,
-            double health,
+            double energy,
+            double maxEnergy,
             double radius,
             double fov
     ) {
@@ -31,11 +43,60 @@ public class Creature {
         this.position = position;
         this.visionDistance = visionDistance;
         this.raysNumber = raysNumber;
-        this.rotation = rotation;
+        this.angle = angle;
         this.fitness = fitness;
-        this.health = health;
+        this.energy = energy;
+        this.maxEnergy = maxEnergy;
         this.radius = radius;
         this.fov = fov;
+
+        wallRayData = new double[raysNumber];
+    }
+
+    public void update(World world, double delta) {
+        double[] input = new double[raysNumber + 1];
+        System.arraycopy(wallRayData, 0, input, 0, wallRayData.length);
+        input[wallRayData.length] = energy/maxEnergy; // energy
+        double[] output = this.neuralNetwork.getResponse(input);
+        double forward = output[0] * delta / 10;
+        double right = output[1] * delta / 10;
+        double rotation = output[2] * delta / 100;
+        setAngle(getAngle() + rotation);
+        position.x += Math.cos(angle)*forward + Math.cos(angle+Math.PI/2)*right;
+        position.y += Math.sin(angle)*forward + Math.sin(angle+Math.PI/2)*right;
+        updateRayData(world);
+    }
+
+    private void updateRayData(World world) {
+        double x = getPosition().getX();
+        double y = getPosition().getY();
+
+        Arrays.fill(wallRayData, 0);
+        world.getWalls().forEach(wall -> {
+            for (int i = 0; i < wallRayData.length; i++) {
+
+                double rayAngle = getAngle() - getFov()/2 + getFov()/getRaysNumber()*(i + 0.5);
+                Line rayLine = new Line(
+                        new DoublePoint(x + cos(rayAngle)*getRadius(), y + sin(rayAngle)*getRadius()),
+                        new DoublePoint(x + cos(rayAngle)*(getRadius() + getVisionDistance()), y + sin(rayAngle)*(getRadius() + getVisionDistance()))
+                );
+
+                Line wallLine = new Line(wall.getPointA(), wall.getPointB());
+
+                Set<DoublePoint> intersections = GeometryUtils.intersections(wallLine, rayLine);
+                if (intersections.isEmpty()) continue;
+                DoublePoint intersection = intersections.stream().findFirst().get();
+
+                double distance = sqrt(pow(rayLine.getPointA().getX() - intersection.getX(), 2) + pow(rayLine.getPointA().getY() - intersection.getY(), 2));
+                double maxDistance = sqrt(pow(rayLine.getPointA().getX() - rayLine.getPointB().getX(), 2) + pow(rayLine.getPointA().getY() - rayLine.getPointB().getY(), 2));
+                wallRayData[i] = max(wallRayData[i], 1 - distance/maxDistance);
+            }
+            // TODO enemy ray data
+        });
+    }
+
+    public double[] getWallRayData() {
+        return wallRayData;
     }
 
     public NeuralNetwork getNeuralNetwork() {
@@ -50,7 +111,7 @@ public class Creature {
         return raysNumber;
     }
 
-    public void setRaysNumber(double raysNumber) {
+    public void setRaysNumber(int raysNumber) {
         this.raysNumber = raysNumber;
     }
 
@@ -78,12 +139,12 @@ public class Creature {
         this.radius = radius;
     }
 
-    public double getHealth() {
-        return health;
+    public double getEnergy() {
+        return energy;
     }
 
-    public void setHealth(double health) {
-        this.health = health;
+    public void setEnergy(double energy) {
+        this.energy = energy;
     }
 
     public double getFitness() {
@@ -94,12 +155,12 @@ public class Creature {
         this.fitness = fitness;
     }
 
-    public double getRotation() {
-        return rotation;
+    public double getAngle() {
+        return angle;
     }
 
-    public void setRotation(double rotation) {
-        this.rotation = rotation;
+    public void setAngle(double angle) {
+        this.angle = angle;
     }
 
     public Point getPosition() {

@@ -1,15 +1,15 @@
 package space.davids_digital.neurobots.model;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 public class World {
     private int width;
     private int height;
 
-    private Set<Wall> walls = new HashSet<>();
-    private Set<Creature> creatures = new HashSet<>();
-    private Set<Bullet> bullets = new HashSet<>();
+    private final List<Wall> walls = new ArrayList<>();
+    private final List<Creature> creatures = new ArrayList<>();
+    private final List<Bullet> bullets = new ArrayList<>();
 
     public World(int width, int height) {
         setWidth(width);
@@ -17,11 +17,15 @@ public class World {
     }
 
     public void update(double delta) {
-
+        creatures.forEach(c -> c.update(this, delta));
     }
 
-    public void addCreature(Creature creature) {
-        creatures.add(creature);
+    public List<Creature> getCreatures() {
+        return creatures;
+    }
+
+    public List<Wall> getWalls() {
+        return walls;
     }
 
     public int getWidth() {
