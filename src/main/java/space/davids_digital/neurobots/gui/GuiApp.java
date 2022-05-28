@@ -45,10 +45,10 @@ public class GuiApp {
         world.getWalls().add(new Wall(new DoublePoint(world.getWidth(), 0), new DoublePoint(0, 0)));
         for (int i = 0; i < 30; i++)
             world.getCreatures().add(new Creature(
-                    new NeuralNetwork(21, 1, 11, 3, -0.25, 0.25),
+                    new NeuralNetwork(21, 2, 11, 3, -0.25, 0.25),
                     Color.green,
                     new DoublePoint(100 + 10*i, 40),
-                    500, 10, 0, 3, 12, 12, 30, Math.toRadians(45)
+                    100, 10, 0, 3, 12, 12, 30, Math.toRadians(45)
             ));
     }
 

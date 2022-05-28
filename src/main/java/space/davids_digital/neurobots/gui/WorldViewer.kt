@@ -3,23 +3,16 @@ package space.davids_digital.neurobots.gui
 import space.davids_digital.neurobots.model.Creature
 import space.davids_digital.neurobots.model.Wall
 import space.davids_digital.neurobots.model.World
-import java.awt.BasicStroke
-import java.awt.Color
-import java.awt.Graphics
-import java.awt.Graphics2D
-import java.awt.event.KeyEvent
-import java.awt.event.KeyListener
-import java.awt.event.MouseWheelEvent
-import java.awt.event.MouseWheelListener
+import java.awt.*
+import java.awt.event.*
 import java.awt.geom.AffineTransform
+import java.awt.image.BufferedImage
 import java.util.function.Consumer
 import javax.swing.JPanel
 import kotlin.math.cos
-import kotlin.math.max
-import kotlin.math.min
 import kotlin.math.sin
 
-class WorldViewer(var world: World) : JPanel(), KeyListener, MouseWheelListener {
+class WorldViewer(var world: World) : JPanel(), KeyListener, MouseWheelListener, ComponentListener {
     private var cameraX = 0.0
     private var cameraY = 0.0
     private var viewportHeight = 800.0
@@ -30,12 +23,13 @@ class WorldViewer(var world: World) : JPanel(), KeyListener, MouseWheelListener 
         addMouseWheelListener(this)
         addKeyListener(this)
         isFocusable = true
-        updateCameraTransform()
     }
 
     public override fun paintComponent(graphics: Graphics) {
         super.paintComponent(graphics)
         val g = graphics as Graphics2D
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
         g.color = Color.GRAY
         g.fillRect(0, 0, width, height)
         g.transform = cameraTransform
@@ -116,7 +110,7 @@ class WorldViewer(var world: World) : JPanel(), KeyListener, MouseWheelListener 
         if (pressedKeys.contains(KeyEvent.VK_UP)) moveCamera(0.0, -delta * viewportHeight / 1000)
     }
 
-    fun moveCamera(dx: Double, dy: Double) {
+    private fun moveCamera(dx: Double, dy: Double) {
         cameraX += dx
         cameraY += dy
         updateCameraTransform()
@@ -143,4 +137,9 @@ class WorldViewer(var world: World) : JPanel(), KeyListener, MouseWheelListener 
         cameraTransform.scale(scale, scale)
         cameraTransform.translate(-cameraX * scale, -cameraY * scale)
     }
+
+    override fun componentResized(e: ComponentEvent?) = updateCameraTransform()
+    override fun componentShown(e: ComponentEvent?) = updateCameraTransform()
+    override fun componentMoved(e: ComponentEvent?) {}
+    override fun componentHidden(e: ComponentEvent?) {}
 }
