@@ -16,9 +16,10 @@ class Creature(
     var visionDistance: Double,
     var raysNumber: Int,
     var angle: Double,
-    var fitness: Double,
     var energy: Double,
     val maxEnergy: Double,
+    var health: Double,
+    var maxHealth: Double,
     var radius: Double,
     var fov: Double
 ) {
@@ -27,21 +28,22 @@ class Creature(
     @Transient
     val wallRayData: DoubleArray = DoubleArray(raysNumber)
     val creatureRayData: DoubleArray = DoubleArray(raysNumber)
+    val foodRayData: DoubleArray = DoubleArray(raysNumber)
 
     fun update(world: World, delta: Double) {
-        val input = DoubleArray(raysNumber*2 + 1)
-        System.arraycopy(wallRayData, 0, input, 0, wallRayData.size)
-        System.arraycopy(creatureRayData, 0, input, wallRayData.size, creatureRayData.size)
-        input[wallRayData.size] = energy / maxEnergy // energy
+        val input = DoubleArray(raysNumber*3 + 2)
+        System.arraycopy(wallRayData, 0, input, 0, raysNumber)
+        System.arraycopy(creatureRayData, 0, input, raysNumber, raysNumber)
+        System.arraycopy(foodRayData, 0, input, raysNumber*2, raysNumber)
+        input[wallRayData.size] = energy / maxEnergy
+        input[wallRayData.size+1] = health / maxHealth
         val output = neuralNetwork.getResponse(input)
         val forward = output[0] * delta
         val right = output[1] * delta
         val rotation = output[2] * delta / 100
         angle += rotation
-        position.x =
-            position.x + cos(angle) * forward + cos(angle + Math.PI / 2) * right
-        position.y =
-            position.y + sin(angle) * forward + sin(angle + Math.PI / 2) * right
+        position.x = position.x + cos(angle) * forward + cos(angle + Math.PI / 2) * right
+        position.y = position.y + sin(angle) * forward + sin(angle + Math.PI / 2) * right
     }
 
     fun updateRayData(world: World) {

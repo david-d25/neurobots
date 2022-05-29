@@ -12,16 +12,18 @@ import javax.swing.JPanel
 import kotlin.math.cos
 import kotlin.math.sin
 
-class WorldViewer(var world: World) : JPanel(), KeyListener, MouseWheelListener, ComponentListener {
+class WorldViewer(var world: World) : JPanel(), MouseListener, MouseMotionListener, MouseWheelListener, ComponentListener {
     private var cameraX = 0.0
     private var cameraY = 0.0
     private var viewportHeight = 800.0
     private val cameraTransform = AffineTransform()
-    private val pressedKeys: MutableSet<Int> = HashSet()
+    private var lastMousePosition = Point()
+    private var isDragging = false
 
     init {
+        addMouseMotionListener(this)
         addMouseWheelListener(this)
-        addKeyListener(this)
+        addMouseListener(this)
         isFocusable = true
     }
 
@@ -104,29 +106,11 @@ class WorldViewer(var world: World) : JPanel(), KeyListener, MouseWheelListener,
     }
 
     fun update(delta: Double) {
-        if (pressedKeys.contains(KeyEvent.VK_RIGHT)) moveCamera(delta * viewportHeight / 1000, 0.0)
-        if (pressedKeys.contains(KeyEvent.VK_LEFT)) moveCamera(-delta * viewportHeight / 1000, 0.0)
-        if (pressedKeys.contains(KeyEvent.VK_DOWN)) moveCamera(0.0, delta * viewportHeight / 1000)
-        if (pressedKeys.contains(KeyEvent.VK_UP)) moveCamera(0.0, -delta * viewportHeight / 1000)
-    }
 
-    private fun moveCamera(dx: Double, dy: Double) {
-        cameraX += dx
-        cameraY += dy
-        updateCameraTransform()
-    }
-
-    override fun keyTyped(e: KeyEvent) {}
-    override fun keyPressed(e: KeyEvent) {
-        pressedKeys.add(e.keyCode)
-    }
-
-    override fun keyReleased(e: KeyEvent) {
-        pressedKeys.remove(e.keyCode)
     }
 
     override fun mouseWheelMoved(e: MouseWheelEvent) {
-        viewportHeight += e.preciseWheelRotation * 100
+        viewportHeight *= if (e.preciseWheelRotation < 0) -1/(e.preciseWheelRotation/4 - 1) else e.preciseWheelRotation/4 + 1
         updateCameraTransform()
     }
 
@@ -134,12 +118,36 @@ class WorldViewer(var world: World) : JPanel(), KeyListener, MouseWheelListener,
         val scale = height / viewportHeight
         cameraTransform.setToIdentity()
         cameraTransform.translate(width / 2.0, height / 2.0)
-        cameraTransform.scale(scale, scale)
         cameraTransform.translate(-cameraX * scale, -cameraY * scale)
+        cameraTransform.scale(scale, scale)
     }
 
     override fun componentResized(e: ComponentEvent?) = updateCameraTransform()
     override fun componentShown(e: ComponentEvent?) = updateCameraTransform()
     override fun componentMoved(e: ComponentEvent?) {}
     override fun componentHidden(e: ComponentEvent?) {}
+    override fun mouseClicked(e: MouseEvent) {}
+
+    override fun mousePressed(e: MouseEvent) {
+        isDragging = true
+        lastMousePosition.x = e.x
+        lastMousePosition.y = e.y
+    }
+
+    override fun mouseReleased(e: MouseEvent) { isDragging = false }
+
+    override fun mouseEntered(e: MouseEvent) {}
+
+    override fun mouseExited(e: MouseEvent) { isDragging = false }
+
+    override fun mouseDragged(e: MouseEvent) {
+        val scale = height / viewportHeight
+        cameraX += (lastMousePosition.x - e.x)/scale
+        cameraY += (lastMousePosition.y - e.y)/scale
+        lastMousePosition.x = e.x
+        lastMousePosition.y = e.y
+        updateCameraTransform()
+    }
+
+    override fun mouseMoved(e: MouseEvent) {}
 }
