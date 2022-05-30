@@ -9,10 +9,10 @@ import javax.swing.border.EmptyBorder
 class ControlPanel(
     private val world: World
 ): JPanel() {
-
     private val startBtn = JButton("Start").also { it.addActionListener { world.paused = false } }
     private val pauseBtn = JButton("Pause").also { it.addActionListener { world.paused = true } }
     private val clearBtn = JButton("Clear area").also { it.addActionListener { world.creatures.clear() } }
+
     init {
         layout = BoxLayout(this, BoxLayout.Y_AXIS)
         border = EmptyBorder(10, 10, 10, 10)
@@ -22,6 +22,5 @@ class ControlPanel(
             panel.add(pauseBtn)
             panel.add(clearBtn)
         })
-
     }
 }

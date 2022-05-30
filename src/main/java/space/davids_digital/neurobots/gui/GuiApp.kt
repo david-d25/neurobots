@@ -1,10 +1,7 @@
 package space.davids_digital.neurobots.gui
 
 import space.davids_digital.neurobots.geom.DoublePoint
-import space.davids_digital.neurobots.model.Creature
-import space.davids_digital.neurobots.model.NeuralNetwork
-import space.davids_digital.neurobots.model.Wall
-import space.davids_digital.neurobots.model.World
+import space.davids_digital.neurobots.model.*
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Dimension
@@ -40,28 +37,23 @@ class GuiApp private constructor() {
 
     private fun initWorld() {
         world = World(1200, 800)
-        world.walls.add(Wall(DoublePoint(), DoublePoint(0.0, world.height.toDouble())))
-        world.walls.add(
-            Wall(
-                DoublePoint(0.0, world.height.toDouble()),
-                DoublePoint(world.width.toDouble(), world.height.toDouble())
-            )
-        )
-        world.walls.add(
-            Wall(
-                DoublePoint(world.width.toDouble(), world.height.toDouble()),
-                DoublePoint(world.width.toDouble(), 0.0)
-            )
-        )
-        world.walls.add(Wall(DoublePoint(world.width.toDouble(), 0.0), DoublePoint()))
-        for (i in 0..29) world.creatures.add(
-            Creature(
-                NeuralNetwork(8*2+2, 2, 11, 3, -0.25, 0.25),
-                Color.green,
-                DoublePoint((100 + 10 * i).toDouble(), 40.0),
-                100.0, 8, Math.random()*Math.PI, 100.0, 100.0, 100.0, 100.0, 30.0, Math.toRadians(75.0)
-            )
-        )
+        world.walls.add(Wall(DoublePoint(), DoublePoint(0, world.height)))
+        world.walls.add(Wall(DoublePoint(0, world.height), DoublePoint(world.width, world.height)))
+        world.walls.add(Wall(DoublePoint(world.width, world.height), DoublePoint(world.width, 0)))
+        world.walls.add(Wall(DoublePoint(world.width, 0), DoublePoint()))
+        world.spawners.add(CreatureSpawner(
+            world,
+            DoublePoint(150, 150),
+            Color(0f, 0.5f, 0f),
+            1,
+            6,
+            200.0,
+            8,
+            100.0, 100.0,
+            100.0, 100.0,
+            50.0,
+            Math.toRadians(75.0)
+        ))
     }
 
     private fun initUpdating() {

@@ -1,5 +1,6 @@
 package space.davids_digital.neurobots.gui
 
+import space.davids_digital.neurobots.gui.util.drawCenteredString
 import space.davids_digital.neurobots.model.Creature
 import space.davids_digital.neurobots.model.Wall
 import space.davids_digital.neurobots.model.World
@@ -29,6 +30,7 @@ class WorldViewer(var world: World) : JPanel(), MouseListener, MouseMotionListen
 
     public override fun paintComponent(graphics: Graphics) {
         super.paintComponent(graphics)
+        updateCameraTransform()
         val g = graphics as Graphics2D
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
         g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
@@ -39,25 +41,25 @@ class WorldViewer(var world: World) : JPanel(), MouseListener, MouseMotionListen
         g.fillRect(0, 0, world.width, world.height)
         g.stroke = BasicStroke(2f)
         g.color = Color.BLACK
-        world.walls.forEach(Consumer { wall: Wall ->
+        world.walls.forEach { wall: Wall ->
             g.drawLine(
                 wall.pointA.x.toInt(),
                 wall.pointA.y.toInt(),
                 wall.pointB.x.toInt(),
                 wall.pointB.y.toInt()
             )
-        })
+        }
 
         // Creature
-        world.creatures.forEach(Consumer { creature: Creature ->
-            val x = creature.position.x.toInt()
-            val y = creature.position.y.toInt()
+        world.creatures.forEach { creature: Creature ->
+            val x = creature.position.x
+            val y = creature.position.y
             val radius = creature.radius
             val angle = creature.angle
             g.color = creature.color
             g.fillArc(
-                x - radius.toInt(),
-                y - radius.toInt(),
+                (x - radius).toInt(),
+                (y - radius).toInt(),
                 creature.radius.toInt() * 2,
                 creature.radius.toInt() * 2,
                 0,
@@ -65,8 +67,8 @@ class WorldViewer(var world: World) : JPanel(), MouseListener, MouseMotionListen
             )
             g.color = creature.color.darker()
             g.drawArc(
-                x - radius.toInt(),
-                y - radius.toInt(),
+                (x - radius).toInt(),
+                (y - radius).toInt(),
                 creature.radius.toInt() * 2,
                 creature.radius.toInt() * 2,
                 0,
@@ -86,6 +88,22 @@ class WorldViewer(var world: World) : JPanel(), MouseListener, MouseMotionListen
                 3
             )
 
+            g.color = Color.GREEN.darker()
+            g.fillRect(
+                (x - radius).toInt(),
+                (y + radius).toInt() + 4,
+                radius.toInt()*2,
+                10
+            )
+
+            g.color = Color.GREEN
+            g.fillRect(
+                (x - radius).toInt(),
+                (y + radius).toInt() + 4,
+                (radius*2*creature.energy/creature.maxEnergy).toInt(),
+                8
+            )
+
             // Rays
             for (rayId in 0 until creature.raysNumber) {
                 val isCreatureRay = creature.creatureRayData[rayId] > creature.wallRayData[rayId]
@@ -102,7 +120,7 @@ class WorldViewer(var world: World) : JPanel(), MouseListener, MouseMotionListen
                     (y + sin(rayAngle) * (radius + creature.visionDistance * (1 - rayLength))).toInt()
                 )
             }
-        })
+        }
     }
 
     fun update(delta: Double) {

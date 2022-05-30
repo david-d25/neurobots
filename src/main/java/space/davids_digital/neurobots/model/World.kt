@@ -8,13 +8,17 @@ import kotlin.math.sign
 import kotlin.math.sqrt
 
 class World(var width: Int, var height: Int) {
-    val walls: MutableList<Wall> = ArrayList()
-    val creatures: MutableList<Creature> = ArrayList()
-    val bullets: MutableList<Bullet> = ArrayList()
+    val walls: MutableList<Wall> = mutableListOf()
+    val creatures: MutableList<Creature> = mutableListOf()
+    val bullets: MutableList<Bullet> = mutableListOf()
+    val spawners: MutableList<CreatureSpawner> = mutableListOf()
     var paused = false
 
     fun update(delta: Double) {
         if (paused) return
+        if (creatures.size == 0)
+            spawners.forEach(CreatureSpawner::spawn)
+
         creatures.forEach { c: Creature -> c.update(this, delta) }
 
         creatures.filter(Creature::isAlive).forEach { c1 ->
