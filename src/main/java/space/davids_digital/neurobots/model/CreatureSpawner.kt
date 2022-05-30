@@ -32,7 +32,7 @@ class CreatureSpawner (
                     0.5
                 ),
                 color,
-                position,
+                position.copy(),
                 visionDistance,
                 raysNumber,
                 2*PI*random(),

@@ -47,7 +47,20 @@ class GuiApp private constructor() {
             Color(0f, 0.5f, 0f),
             1,
             6,
-            200.0,
+            250.0,
+            8,
+            100.0, 100.0,
+            100.0, 100.0,
+            50.0,
+            Math.toRadians(75.0)
+        ))
+        world.spawners.add(CreatureSpawner(
+            world,
+            DoublePoint(300, 150),
+            Color(0f, 0.5f, 0f),
+            1,
+            6,
+            250.0,
             8,
             100.0, 100.0,
             100.0, 100.0,

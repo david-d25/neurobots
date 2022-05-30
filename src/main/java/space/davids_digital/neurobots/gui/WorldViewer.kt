@@ -7,6 +7,8 @@ import space.davids_digital.neurobots.model.World
 import java.awt.*
 import java.awt.event.*
 import java.awt.geom.AffineTransform
+import java.awt.geom.Line2D
+import java.awt.geom.Path2D
 import java.awt.image.BufferedImage
 import java.util.function.Consumer
 import javax.swing.JPanel
@@ -41,13 +43,37 @@ class WorldViewer(var world: World) : JPanel(), MouseListener, MouseMotionListen
         g.fillRect(0, 0, world.width, world.height)
         g.stroke = BasicStroke(2f)
         g.color = Color.BLACK
-        world.walls.forEach { wall: Wall ->
+        world.walls.forEach {
             g.drawLine(
-                wall.pointA.x.toInt(),
-                wall.pointA.y.toInt(),
-                wall.pointB.x.toInt(),
-                wall.pointB.y.toInt()
+                it.pointA.x.toInt(),
+                it.pointA.y.toInt(),
+                it.pointB.x.toInt(),
+                it.pointB.y.toInt()
             )
+        }
+
+        world.spawners.forEach {
+            val oldStroke = g.stroke
+            g.stroke = BasicStroke(3f, BasicStroke.CAP_ROUND, BasicStroke.CAP_ROUND, 0f, arrayOf(4f, 4f).toFloatArray(), 0f)
+            g.color = Color(0f, 0f, 0f, .4f)
+            g.drawArc(
+                (it.position.x - it.radius).toInt(),
+                (it.position.y - it.radius).toInt(),
+                it.radius.toInt() * 2,
+                it.radius.toInt() * 2,
+                0,
+                360
+            )
+            g.color = Color(0f, 0f, 0f, .2f)
+            g.fillArc(
+                (it.position.x - it.radius).toInt(),
+                (it.position.y - it.radius).toInt(),
+                it.radius.toInt() * 2,
+                it.radius.toInt() * 2,
+                0,
+                360
+            )
+            g.stroke = oldStroke
         }
 
         // Creature
@@ -88,22 +114,6 @@ class WorldViewer(var world: World) : JPanel(), MouseListener, MouseMotionListen
                 3
             )
 
-            g.color = Color.GREEN.darker()
-            g.fillRect(
-                (x - radius).toInt(),
-                (y + radius).toInt() + 4,
-                radius.toInt()*2,
-                10
-            )
-
-            g.color = Color.GREEN
-            g.fillRect(
-                (x - radius).toInt(),
-                (y + radius).toInt() + 4,
-                (radius*2*creature.energy/creature.maxEnergy).toInt(),
-                8
-            )
-
             // Rays
             for (rayId in 0 until creature.raysNumber) {
                 val isCreatureRay = creature.creatureRayData[rayId] > creature.wallRayData[rayId]
@@ -113,13 +123,43 @@ class WorldViewer(var world: World) : JPanel(), MouseListener, MouseMotionListen
                 else
                     g.color = Color(if (isCreatureRay) 1f else 0f, 0f, if (isCreatureRay) 0f else 1f, (0.25 + 0.75 * rayLength).toFloat())
                 val rayAngle = angle - creature.fov / 2 + creature.fov / creature.raysNumber * (rayId + 0.5)
-                g.drawLine(
-                    (x + cos(rayAngle) * radius).toInt(),
-                    (y + sin(rayAngle) * radius).toInt(),
-                    (x + cos(rayAngle) * (radius + creature.visionDistance * (1 - rayLength))).toInt(),
-                    (y + sin(rayAngle) * (radius + creature.visionDistance * (1 - rayLength))).toInt()
-                )
+                g.draw(Line2D.Double(
+                    x + cos(rayAngle) * radius,
+                    y + sin(rayAngle) * radius,
+                    x + cos(rayAngle) * (radius + creature.visionDistance * (1 - rayLength)),
+                    y + sin(rayAngle) * (radius + creature.visionDistance * (1 - rayLength))
+                ))
             }
+
+            // Bars
+            g.color = Color.CYAN.darker()
+            g.fillRect(
+                (x - radius).toInt(),
+                (y + radius).toInt() + 4,
+                radius.toInt()*2,
+                8
+            )
+            g.color = Color.CYAN
+            g.fillRect(
+                (x - radius).toInt(),
+                (y + radius).toInt() + 4,
+                (radius*2*creature.energy/creature.maxEnergy).toInt(),
+                8
+            )
+            g.color = Color.GREEN.darker()
+            g.fillRect(
+                (x - radius).toInt(),
+                (y + radius).toInt() + 12,
+                radius.toInt()*2,
+                8
+            )
+            g.color = Color.GREEN
+            g.fillRect(
+                (x - radius).toInt(),
+                (y + radius).toInt() + 12,
+                (radius*2*creature.health/creature.health).toInt(),
+                8
+            )
         }
     }
 
