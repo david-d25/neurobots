@@ -2,6 +2,7 @@ package space.davids_digital.neurobots.world
 
 import space.davids_digital.neurobots.geom.GeometryUtils
 import space.davids_digital.neurobots.geom.Line
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.math.min
 import kotlin.math.pow
@@ -21,6 +22,7 @@ class World(
     val creatureSpawners: MutableList<CreatureSpawner> = mutableListOf()
     val foodSpawners: MutableList<FoodSpawner> = mutableListOf()
     val food: MutableList<Food> = mutableListOf()
+    val objects: ConcurrentLinkedQueue<WorldObject> = ConcurrentLinkedQueue()
     var paused = false
 
     fun update(delta: Double) {
@@ -28,49 +30,32 @@ class World(
         if (creatures.size == 0)
             creatureSpawners.forEach(CreatureSpawner::spawn)
 
-        creatures.forEach { it.update(this, delta) }
-        creatures.removeIf { !it.alive }
+        objects.forEach { it.update(delta) }
 
-        foodSpawners.forEach { it.update(delta) }
+        creatures.filter { !it.alive }.forEach { remove(it) }
 
-        creatures.filter(Creature::alive).forEach { c1 ->
-            creatures.filter(Creature::alive).filter { it !== c1 }.forEach { c2 ->
-                val distance = c1.position.distance(c2.position)
-                val sin = (c2.position.y - c1.position.y) / distance
-                val cos = (c2.position.x - c1.position.x) / distance
-                if (sin.isFinite() && cos.isFinite() && distance < c1.radius + c2.radius) {
-                    val offset = c1.radius + c2.radius - distance
-                    c1.position.x -= offset * cos
-                    c1.position.y -= offset * sin
-                    c2.position.x += offset * cos
-                    c2.position.y += offset * sin
+        creatures.forEach { creature ->
+            creatures.filter { it !== creature }.forEach { innerCreature ->
+                val distance = creature.position.distance(innerCreature.position)
+                val sin = (innerCreature.position.y - creature.position.y) / distance
+                val cos = (innerCreature.position.x - creature.position.x) / distance
+                if (sin.isFinite() && cos.isFinite() && distance < creature.radius + innerCreature.radius) {
+                    val offset = creature.radius + innerCreature.radius - distance
+                    creature.position.x -= offset * cos
+                    creature.position.y -= offset * sin
+                    innerCreature.position.x += offset * cos
+                    innerCreature.position.y += offset * sin
                 }
             }
-            if (c1.position.x < c1.radius)
-                c1.position.x = c1.radius
-            if (c1.position.y < c1.radius)
-                c1.position.y = c1.radius
-            if (c1.position.x > width - c1.radius)
-                c1.position.x = width.toDouble() - c1.radius
-            if (c1.position.y > height - c1.radius)
-                c1.position.y = height.toDouble() - c1.radius
-        }
+            if (creature.position.x < creature.radius)
+                creature.position.x = creature.radius
+            if (creature.position.y < creature.radius)
+                creature.position.y = creature.radius
+            if (creature.position.x > width - creature.radius)
+                creature.position.x = width.toDouble() - creature.radius
+            if (creature.position.y > height - creature.radius)
+                creature.position.y = height.toDouble() - creature.radius
 
-        creatures.filter(Creature::alive).forEach { c ->
-            val iterator = food.iterator()
-            while (iterator.hasNext()) {
-                val f = iterator.next()
-                val distance = c.position.distance(f.position)
-                val sin = (f.position.y - c.position.y) / distance
-                val cos = (f.position.x - c.position.x) / distance
-                if (sin.isFinite() && cos.isFinite() && distance < c.radius + f.radius) {
-                    iterator.remove()
-                    c.changeEnergy(f.energy)
-                }
-            }
-        }
-
-        creatures.filter(Creature::alive).forEach { creature ->
             walls.forEach { wall ->
                 val pointADistance = creature.position.distance(wall.pointA)
                 val pointBDistance = creature.position.distance(wall.pointB)
@@ -96,8 +81,61 @@ class World(
                     creature.position.y += creature.radius * sin - offset.y
                 }
             }
+
+            val iterator = food.iterator()
+            while (iterator.hasNext()) {
+                val f = iterator.next()
+                val distance = creature.position.distance(f.position)
+                val sin = (f.position.y - creature.position.y) / distance
+                val cos = (f.position.x - creature.position.x) / distance
+                if (sin.isFinite() && cos.isFinite() && distance < creature.radius + f.radius) {
+                    iterator.remove()
+                    creature.changeEnergy(f.energy)
+                }
+            }
         }
 
         creatures.forEach { it.updateRayData(this) }
+    }
+
+    operator fun plusAssign(worldObject: WorldObject) {
+        add(worldObject)
+    }
+
+    fun add(worldObject: WorldObject) {
+        worldObject.world = this
+        objects += worldObject
+        if (worldObject is Wall)
+            walls += worldObject
+        if (worldObject is Creature)
+            creatures += worldObject
+        if (worldObject is Bullet)
+            bullets += worldObject
+        if (worldObject is CreatureSpawner)
+            creatureSpawners += worldObject
+        if (worldObject is FoodSpawner)
+            foodSpawners += worldObject
+        if (worldObject is Food)
+            food += worldObject
+    }
+
+    fun remove(worldObject: WorldObject) {
+        objects -= worldObject
+        if (worldObject is Wall)
+            walls -= worldObject
+        if (worldObject is Creature)
+            creatures -= worldObject
+        if (worldObject is Bullet)
+            bullets -= worldObject
+        if (worldObject is CreatureSpawner)
+            creatureSpawners -= worldObject
+        if (worldObject is FoodSpawner)
+            foodSpawners -= worldObject
+        if (worldObject is Food)
+            food -= worldObject
+    }
+
+    companion object {
+        val NULL = World(0, 0, 0.0, 0.0, 0.0)
     }
 }

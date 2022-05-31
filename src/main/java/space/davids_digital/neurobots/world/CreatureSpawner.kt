@@ -6,7 +6,6 @@ import java.lang.Math.PI
 import java.lang.Math.random
 
 class CreatureSpawner (
-    val world: World,
     val position: DoublePoint,
     val color: Color,
     val hiddenLayers: Int,
@@ -19,30 +18,28 @@ class CreatureSpawner (
     var maxHealth: Double,
     var radius: Double,
     var fov: Double,
-) {
+): WorldObject() {
     fun spawn() {
-        world.creatures.add(
-            Creature(
-                NeuralNetwork(
-                    raysNumber*3 + 3,
-                    hiddenLayers,
-                    hiddenLayerSize,
-                    5,
-                    -0.5,
-                    0.5
-                ),
-                color,
-                position.copy(),
-                visionDistance,
-                raysNumber,
-                2*PI*random(),
-                energy,
-                maxEnergy,
-                health,
-                maxHealth,
-                radius,
-                fov
-            )
+        world += Creature(
+            NeuralNetwork(
+                raysNumber*3 + 3,
+                hiddenLayers,
+                hiddenLayerSize,
+                5,
+                -1.0,
+                1.0
+            ),
+            color,
+            position.copy(),
+            visionDistance,
+            raysNumber,
+            2*PI*random(),
+            energy,
+            maxEnergy,
+            health,
+            maxHealth,
+            radius,
+            fov
         )
     }
 }

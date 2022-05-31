@@ -18,6 +18,7 @@ class WorldViewer(
     private val cameraTransform = AffineTransform()
     private var lastMousePosition = Point()
     private var isDragging = false
+    private var lastPaint: Long = 0
 
     init {
         addMouseMotionListener(this)
@@ -152,6 +153,12 @@ class WorldViewer(
                 Arc2D.CHORD
             ))
         }
+
+        g.color = Color.BLACK
+        g.transform = AffineTransform()
+        g.font = Font("Arial", Font.PLAIN, 18)
+        g.drawString("${String.format("%.1f", 1000000000.0/(System.nanoTime() - lastPaint))} FPS", 0, 18)
+        lastPaint = System.nanoTime()
     }
 
     fun update(delta: Double) {

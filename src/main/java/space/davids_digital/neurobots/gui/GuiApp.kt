@@ -39,25 +39,24 @@ class GuiApp private constructor() {
 
     private fun initWorld() {
         world = World(10000, 5000, 0.04, 0.04, 1.0)
-        world.walls.add(Wall(DoublePoint(), DoublePoint(0, world.height)))
-        world.walls.add(Wall(DoublePoint(0, world.height), DoublePoint(world.width, world.height)))
-        world.walls.add(Wall(DoublePoint(world.width, world.height), DoublePoint(world.width, 0)))
-        world.walls.add(Wall(DoublePoint(world.width, 0), DoublePoint()))
-        world.foodSpawners += FoodSpawner(world, DoublePoint(0, 0), DoublePoint(world.width, world.height), 20.0, 15.0, 1000)
-        repeat(16) {
-            world.creatureSpawners.add(CreatureSpawner(
-                world,
-                DoublePoint(150 + 500.0 * it, 2500 + 1000 * sin(200.0*it)),
+        world += Wall(DoublePoint(), DoublePoint(0, world.height))
+        world += Wall(DoublePoint(0, world.height), DoublePoint(world.width, world.height))
+        world += Wall(DoublePoint(world.width, world.height), DoublePoint(world.width, 0))
+        world += Wall(DoublePoint(world.width, 0), DoublePoint())
+        world += FoodSpawner(DoublePoint(0, 0), DoublePoint(world.width, world.height), 10.0, 15.0, 10000)
+        repeat(32) {
+            world += CreatureSpawner(
+                DoublePoint(150 + 250.0 * it, 2500 + 1500 * sin(200.0*it)),
                 Color(0f, 0.5f, 0f),
                 1,
                 6,
                 1000.0,
                 8,
-                25.0, 100.0,
+                50.0, 200.0,
                 50.0, 100.0,
                 50.0,
                 Math.toRadians(75.0)
-            ))
+            )
         }
     }
 

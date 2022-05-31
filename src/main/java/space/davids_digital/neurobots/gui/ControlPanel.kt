@@ -11,7 +11,7 @@ class ControlPanel(
 ): JPanel() {
     private val startBtn = JButton("Start").also { it.addActionListener { world.paused = false } }
     private val pauseBtn = JButton("Pause").also { it.addActionListener { world.paused = true } }
-    private val clearBtn = JButton("Clear area").also { it.addActionListener { world.creatures.clear() } }
+    private val clearBtn = JButton("Clear area").also { it.addActionListener {  } } // TODO
 
     init {
         layout = BoxLayout(this, BoxLayout.Y_AXIS)
@@ -20,7 +20,7 @@ class ControlPanel(
             panel.layout = BoxLayout(panel, BoxLayout.X_AXIS)
             panel.add(startBtn)
             panel.add(pauseBtn)
-            panel.add(clearBtn)
+//            panel.add(clearBtn)
         })
     }
 }

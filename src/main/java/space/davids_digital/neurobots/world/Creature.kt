@@ -21,7 +21,7 @@ class Creature(
     var maxHealth: Double,
     var radius: Double,
     var fov: Double
-) {
+): WorldObject() {
     var alive = true
 
     @Transient
@@ -29,7 +29,7 @@ class Creature(
     val creatureRayData: DoubleArray = DoubleArray(raysNumber)
     val foodRayData: DoubleArray = DoubleArray(raysNumber)
 
-    fun update(world: World, delta: Double) {
+    override fun update(delta: Double) {
         if (!alive) return
         val input = DoubleArray(neuralNetwork.inputsN)
         System.arraycopy(wallRayData, 0, input, 0, raysNumber)
@@ -79,7 +79,7 @@ class Creature(
 
     private fun divide(world: World) {
         val newCreature = Creature(
-            neuralNetwork.copy().mutate(0.01),
+            neuralNetwork.copy().mutate(0.001),
             color,
             position.copy(),
             visionDistance,
@@ -94,7 +94,7 @@ class Creature(
         )
         newCreature.changeEnergy(-maxEnergy/2)
         changeEnergy(-maxEnergy/2)
-        world.creatures.add(newCreature)
+        world += newCreature
     }
 
     fun updateRayData(world: World) {
@@ -104,17 +104,18 @@ class Creature(
         Arrays.fill(wallRayData, 0.0)
         Arrays.fill(foodRayData, 0.0)
 
-        world.creatures.filter { it.alive && it !== this }.forEach {
-            for (i in creatureRayData.indices) {
-                val rayAngle = angle - fov / 2 + fov / raysNumber * (i + 0.5)
-                val rayLine = Line(
-                    DoublePoint(x + cos(rayAngle) * (radius - 0.1), y + sin(rayAngle) * (radius - 0.1)),
-                    DoublePoint(
-                        x + cos(rayAngle) * (radius + visionDistance),
-                        y + sin(rayAngle) * (radius + visionDistance)
-                    )
+        for (i in 0 until raysNumber) {
+            val rayAngle = angle - fov / 2 + fov / raysNumber * (i + 0.5)
+            val rayLine = Line(
+                DoublePoint(x + cos(rayAngle) * (radius - 0.1), y + sin(rayAngle) * (radius - 0.1)),
+                DoublePoint(
+                    x + cos(rayAngle) * (radius + visionDistance),
+                    y + sin(rayAngle) * (radius + visionDistance)
                 )
-                val intersectionPoints = GeometryUtils.intersections(rayLine, Circle(it.position, it.radius))
+            )
+
+            world.creatures.filter { it.alive && it !== this }.forEach { creature ->
+                val intersectionPoints = GeometryUtils.intersections(rayLine, Circle(creature.position, creature.radius))
                 if (intersectionPoints.size == 1) {
                     val collision = intersectionPoints.first()
                     val distance = rayLine.pointA.distance(collision)
@@ -127,19 +128,9 @@ class Creature(
                     creatureRayData[i] = max(creatureRayData[i], 1 - distance/rayLine.length)
                 }
             }
-        }
 
-        world.food.forEach {
-            for (i in foodRayData.indices) {
-                val rayAngle = angle - fov / 2 + fov / raysNumber * (i + 0.5)
-                val rayLine = Line(
-                    DoublePoint(x + cos(rayAngle) * (radius - 0.1), y + sin(rayAngle) * (radius - 0.1)),
-                    DoublePoint(
-                        x + cos(rayAngle) * (radius + visionDistance),
-                        y + sin(rayAngle) * (radius + visionDistance)
-                    )
-                )
-                val intersectionPoints = GeometryUtils.intersections(rayLine, Circle(it.position, it.radius))
+            world.food.forEach { food ->
+                val intersectionPoints = GeometryUtils.intersections(rayLine, Circle(food.position, food.radius))
                 if (intersectionPoints.size == 1) {
                     val collision = intersectionPoints.first()
                     val distance = rayLine.pointA.distance(collision)
@@ -152,31 +143,23 @@ class Creature(
                     foodRayData[i] = max(foodRayData[i], 1 - distance/rayLine.length)
                 }
             }
-        }
 
-        world.walls.forEach { wall: Wall ->
-            for (i in wallRayData.indices) {
-                val rayAngle = angle - fov / 2 + fov / raysNumber * (i + 0.5)
-                val rayLine = Line(
-                    DoublePoint(x + cos(rayAngle) * radius, y + sin(rayAngle) * radius),
-                    DoublePoint(
-                        x + cos(rayAngle) * (radius + visionDistance),
-                        y + sin(rayAngle) * (radius + visionDistance)
-                    )
-                )
+            world.walls.forEach { wall ->
                 val wallLine = Line(wall.pointA, wall.pointB)
                 val intersections = GeometryUtils.intersections(wallLine, rayLine)
-                if (intersections.isEmpty()) continue
-                val intersection = intersections.stream().findFirst().get()
-                val distance = sqrt(
-                    (rayLine.pointA.x - intersection.x).pow(2.0) + (rayLine.pointA.y - intersection.y).pow(2.0)
-                )
-                val maxDistance = sqrt(
-                    (rayLine.pointA.x - rayLine.pointB.x).pow(2.0) + (rayLine.pointA.y - rayLine.pointB.y).pow(2.0)
-                )
-                wallRayData[i] = max(wallRayData[i], 1 - distance / maxDistance)
+                if (intersections.isNotEmpty()) {
+                    val intersection = intersections.stream().findFirst().get()
+                    val distance = sqrt(
+                        (rayLine.pointA.x - intersection.x).pow(2.0) + (rayLine.pointA.y - intersection.y).pow(2.0)
+                    )
+                    val maxDistance = sqrt(
+                        (rayLine.pointA.x - rayLine.pointB.x).pow(2.0) + (rayLine.pointA.y - rayLine.pointB.y).pow(2.0)
+                    )
+                    wallRayData[i] = max(wallRayData[i], 1 - distance / maxDistance)
+                }
             }
         }
+
 
         for (i in 0 until raysNumber) {
             if (wallRayData[i] > creatureRayData[i]) {

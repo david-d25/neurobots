@@ -46,16 +46,17 @@ class NeuralNetwork(
         val copy = NeuralNetwork(inputsN, hiddenLayersN, hiddenLayerNeuronsN, outputsN)
         for (layerId in copy.weights.indices) {
             val layerNeuronsN = if (layerId == hiddenLayersN) outputsN else hiddenLayerNeuronsN
-            copy.weights[layerId] = Array(layerNeuronsN) { DoubleArray(0) }
-            for (neuronTo in copy.weights[layerId].indices) {
+            copy.weights[layerId] = Array(layerNeuronsN) {
                 val neuronsFrom = if (layerId == 0) inputsN else hiddenLayerNeuronsN
-                copy.weights[layerId][neuronTo] = DoubleArray(neuronsFrom)
+                val result = DoubleArray(neuronsFrom)
                 System.arraycopy(
-                    weights[layerId][neuronTo], 0,
-                    copy.weights[layerId][neuronTo], 0,
-                    weights[layerId][neuronTo].size
+                    weights[layerId][it], 0,
+                    result, 0,
+                    neuronsFrom
                 )
+                result
             }
+
         }
         return copy
     }
