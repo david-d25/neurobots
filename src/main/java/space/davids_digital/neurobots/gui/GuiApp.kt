@@ -1,7 +1,7 @@
 package space.davids_digital.neurobots.gui
 
 import space.davids_digital.neurobots.geom.DoublePoint
-import space.davids_digital.neurobots.model.*
+import space.davids_digital.neurobots.world.*
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Dimension

@@ -1,4 +1,4 @@
-package space.davids_digital.neurobots.model
+package space.davids_digital.neurobots.world
 
 import kotlin.math.tanh
 

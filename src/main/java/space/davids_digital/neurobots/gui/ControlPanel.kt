@@ -1,6 +1,6 @@
 package space.davids_digital.neurobots.gui
 
-import space.davids_digital.neurobots.model.World
+import space.davids_digital.neurobots.world.World
 import javax.swing.BoxLayout
 import javax.swing.JButton
 import javax.swing.JPanel
