@@ -7,11 +7,17 @@ import kotlin.math.pow
 import kotlin.math.sign
 import kotlin.math.sqrt
 
-class World(var width: Int, var height: Int) {
+class World(
+    var width: Int,
+    var height: Int,
+    val movingEnergyCost: Double = 0.0,
+    val rotationEnergyCost: Double = 0.0,
+) {
     val walls: MutableList<Wall> = mutableListOf()
     val creatures: MutableList<Creature> = mutableListOf()
     val bullets: MutableList<Bullet> = mutableListOf()
     val spawners: MutableList<CreatureSpawner> = mutableListOf()
+    val food: MutableList<Food> = mutableListOf()
     var paused = false
 
     fun update(delta: Double) {
@@ -19,10 +25,10 @@ class World(var width: Int, var height: Int) {
         if (creatures.size == 0)
             spawners.forEach(CreatureSpawner::spawn)
 
-        creatures.forEach { c: Creature -> c.update(this, delta) }
+        creatures.forEach { it.update(this, delta) }
 
-        creatures.filter(Creature::isAlive).forEach { c1 ->
-            creatures.filter(Creature::isAlive).filter { it !== c1 }.forEach { c2 ->
+        creatures.filter(Creature::alive).forEach { c1 ->
+            creatures.filter(Creature::alive).filter { it !== c1 }.forEach { c2 ->
                 val distance = c1.position.distance(c2.position)
                 val sin = (c2.position.y - c1.position.y) / distance
                 val cos = (c2.position.x - c1.position.x) / distance
@@ -44,12 +50,28 @@ class World(var width: Int, var height: Int) {
                 c1.position.y = height.toDouble() - c1.radius
         }
 
-        creatures.filter(Creature::isAlive).forEach { creature ->
+        creatures.filter(Creature::alive).forEach { c ->
+            val iterator = food.iterator()
+            while (iterator.hasNext()) {
+                val f = iterator.next()
+                val distance = c.position.distance(f.position)
+                val sin = (f.position.y - c.position.y) / distance
+                val cos = (f.position.x - c.position.x) / distance
+                if (sin.isFinite() && cos.isFinite() && distance < c.radius + f.radius) {
+                    iterator.remove()
+                    c.changeEnergy(f.energy)
+                }
+            }
+        }
+
+        creatures.filter(Creature::alive).forEach { creature ->
             walls.forEach { wall ->
                 val pointADistance = creature.position.distance(wall.pointA)
                 val pointBDistance = creature.position.distance(wall.pointB)
                 val nearestEdgeDistance = min(pointADistance, pointBDistance)
-                val intersection = GeometryUtils.getLinePerpendicularIntersectionPoint(Line(wall.pointA, wall.pointB), creature.position)
+                val intersection = GeometryUtils.getLinePerpendicularIntersectionPoint(
+                    Line(wall.pointA, wall.pointB), creature.position
+                )
                 var perpendicularLength: Double? = null
                 if (intersection != null)
                     perpendicularLength = creature.position.distance(intersection)

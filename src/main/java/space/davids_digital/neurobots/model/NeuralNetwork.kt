@@ -3,12 +3,12 @@ package space.davids_digital.neurobots.model
 import kotlin.math.tanh
 
 class NeuralNetwork(
-    private val inputsN: Int,
-    private val hiddenLayersN: Int,
-    private val hiddenLayerNeuronsN: Int,
-    private val outputsN: Int,
-    minWeight: Double,
-    maxWeight: Double
+    val inputsN: Int,
+    val hiddenLayersN: Int,
+    val hiddenLayerNeuronsN: Int,
+    val outputsN: Int,
+    initMinWeight: Double,
+    initMaxWeight: Double
 ) {
     private val weights: Array<Array<DoubleArray>> = Array(hiddenLayersN + 1) { Array(0) { DoubleArray(0) } }
 
@@ -20,7 +20,7 @@ class NeuralNetwork(
                 val neuronsFrom = if (layerId == 0) inputsN else hiddenLayerNeuronsN
                 weights[layerId][neuronTo] = DoubleArray(neuronsFrom)
                 for (neuronFrom in 0 until neuronsFrom) weights[layerId][neuronTo][neuronFrom] =
-                    minWeight + Math.random() * (maxWeight - minWeight)
+                    initMinWeight + Math.random() * (initMaxWeight - initMinWeight)
             }
         }
     }

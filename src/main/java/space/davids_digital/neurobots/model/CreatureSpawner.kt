@@ -24,7 +24,7 @@ class CreatureSpawner (
         world.creatures.add(
             Creature(
                 NeuralNetwork(
-                    raysNumber*3,
+                    raysNumber*3 + 3,
                     hiddenLayers,
                     hiddenLayerSize,
                     5,
