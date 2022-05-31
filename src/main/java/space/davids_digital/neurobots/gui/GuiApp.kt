@@ -9,6 +9,8 @@ import javax.swing.JFrame
 import javax.swing.Timer
 import javax.swing.UIManager
 import javax.swing.WindowConstants
+import kotlin.math.min
+import kotlin.math.sin
 
 class GuiApp private constructor() {
     private lateinit var worldViewer: WorldViewer
@@ -36,44 +38,33 @@ class GuiApp private constructor() {
     }
 
     private fun initWorld() {
-        world = World(1200, 800, 0.05, 0.05)
+        world = World(10000, 5000, 0.04, 0.04, 1.0)
         world.walls.add(Wall(DoublePoint(), DoublePoint(0, world.height)))
         world.walls.add(Wall(DoublePoint(0, world.height), DoublePoint(world.width, world.height)))
         world.walls.add(Wall(DoublePoint(world.width, world.height), DoublePoint(world.width, 0)))
         world.walls.add(Wall(DoublePoint(world.width, 0), DoublePoint()))
-        repeat(15) { world.food.add(Food(DoublePoint(300 + Math.random()*500, 300 + Math.random()*500), 30.0, 15.0)) }
-        world.spawners.add(CreatureSpawner(
-            world,
-            DoublePoint(150, 150),
-            Color(0f, 0.5f, 0f),
-            1,
-            6,
-            250.0,
-            8,
-            100.0, 100.0,
-            100.0, 100.0,
-            50.0,
-            Math.toRadians(75.0)
-        ))
-        world.spawners.add(CreatureSpawner(
-            world,
-            DoublePoint(300, 150),
-            Color(0f, 0.5f, 0f),
-            1,
-            6,
-            250.0,
-            8,
-            100.0, 100.0,
-            100.0, 100.0,
-            50.0,
-            Math.toRadians(75.0)
-        ))
+        world.foodSpawners += FoodSpawner(world, DoublePoint(0, 0), DoublePoint(world.width, world.height), 20.0, 15.0, 1000)
+        repeat(16) {
+            world.creatureSpawners.add(CreatureSpawner(
+                world,
+                DoublePoint(150 + 500.0 * it, 2500 + 1000 * sin(200.0*it)),
+                Color(0f, 0.5f, 0f),
+                1,
+                6,
+                1000.0,
+                8,
+                25.0, 100.0,
+                50.0, 100.0,
+                50.0,
+                Math.toRadians(75.0)
+            ))
+        }
     }
 
     private fun initUpdating() {
         var lastUpdate = System.currentTimeMillis().toDouble()
         val timer = Timer(10) {
-            val delta: Double = System.currentTimeMillis() - lastUpdate
+            val delta = min(System.currentTimeMillis() - lastUpdate, 30.0)
             lastUpdate = System.currentTimeMillis().toDouble()
             world.update(delta)
             worldViewer.update(delta)

@@ -50,18 +50,51 @@ class Creature(
         changeEnergy(
             - world.rotationEnergyCost * abs(rotation) - world.movingEnergyCost * sqrt(deltaX*deltaX + deltaY*deltaY)
         )
+        if (energy > 0 && health < maxHealth) {
+            val healing = min(delta/1000*world.healingRate, energy)
+            changeEnergy(-healing)
+            changeHealth(healing)
+        }
+        if (output[3] > 0.5)
+            divide(world)
     }
 
     fun changeEnergy(delta: Double) {
         energy += delta
         if (energy < 0) {
-            health += energy
+            changeHealth(energy)
             energy = 0.0
-            if (health < 0)
-                alive = false
         }
         if (energy > maxEnergy)
             energy = maxEnergy
+    }
+
+    fun changeHealth(delta: Double) {
+        health += delta
+        if (health < 0)
+            alive = false
+        if (health > maxHealth)
+            health = maxHealth
+    }
+
+    private fun divide(world: World) {
+        val newCreature = Creature(
+            neuralNetwork.copy().mutate(0.01),
+            color,
+            position.copy(),
+            visionDistance,
+            raysNumber,
+            angle,
+            energy,
+            maxEnergy,
+            health,
+            maxHealth,
+            radius,
+            fov
+        )
+        newCreature.changeEnergy(-maxEnergy/2)
+        changeEnergy(-maxEnergy/2)
+        world.creatures.add(newCreature)
     }
 
     fun updateRayData(world: World) {

@@ -1,18 +1,9 @@
 package space.davids_digital.neurobots.gui
 
-import space.davids_digital.neurobots.gui.util.drawCenteredString
-import space.davids_digital.neurobots.model.Creature
-import space.davids_digital.neurobots.model.Wall
 import space.davids_digital.neurobots.model.World
 import java.awt.*
 import java.awt.event.*
-import java.awt.geom.AffineTransform
-import java.awt.geom.Arc2D
-import java.awt.geom.Line2D
-import java.awt.geom.Path2D
-import java.awt.geom.Rectangle2D
-import java.awt.image.BufferedImage
-import java.util.function.Consumer
+import java.awt.geom.*
 import javax.swing.JPanel
 import kotlin.math.cos
 import kotlin.math.max
@@ -21,9 +12,9 @@ import kotlin.math.sin
 class WorldViewer(
     var world: World,
 ): JPanel(), MouseListener, MouseMotionListener, MouseWheelListener, ComponentListener {
-    private var cameraX = 0.0
-    private var cameraY = 0.0
-    private var viewportHeight = 800.0
+    private var cameraX = world.width/2.toDouble()
+    private var cameraY = world.height/2.toDouble()
+    private var viewportHeight = world.height.toDouble()
     private val cameraTransform = AffineTransform()
     private var lastMousePosition = Point()
     private var isDragging = false
@@ -50,7 +41,7 @@ class WorldViewer(
         g.color = Color.BLACK
         world.walls.forEach { g.draw(Line2D.Double(it.pointA.x, it.pointA.y, it.pointB.x, it.pointB.y)) }
 
-        world.spawners.forEach {
+        world.creatureSpawners.forEach {
             val oldStroke = g.stroke
             g.stroke = BasicStroke(
                 3f, BasicStroke.CAP_ROUND, BasicStroke.CAP_ROUND, 0f, arrayOf(4f, 4f).toFloatArray(), 0f

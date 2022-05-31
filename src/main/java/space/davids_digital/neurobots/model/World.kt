@@ -2,6 +2,7 @@ package space.davids_digital.neurobots.model
 
 import space.davids_digital.neurobots.geom.GeometryUtils
 import space.davids_digital.neurobots.geom.Line
+import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sign
@@ -12,20 +13,25 @@ class World(
     var height: Int,
     val movingEnergyCost: Double = 0.0,
     val rotationEnergyCost: Double = 0.0,
+    val healingRate: Double = 0.0
 ) {
     val walls: MutableList<Wall> = mutableListOf()
-    val creatures: MutableList<Creature> = mutableListOf()
+    val creatures: MutableList<Creature> = CopyOnWriteArrayList()
     val bullets: MutableList<Bullet> = mutableListOf()
-    val spawners: MutableList<CreatureSpawner> = mutableListOf()
+    val creatureSpawners: MutableList<CreatureSpawner> = mutableListOf()
+    val foodSpawners: MutableList<FoodSpawner> = mutableListOf()
     val food: MutableList<Food> = mutableListOf()
     var paused = false
 
     fun update(delta: Double) {
         if (paused) return
         if (creatures.size == 0)
-            spawners.forEach(CreatureSpawner::spawn)
+            creatureSpawners.forEach(CreatureSpawner::spawn)
 
         creatures.forEach { it.update(this, delta) }
+        creatures.removeIf { !it.alive }
+
+        foodSpawners.forEach { it.update(delta) }
 
         creatures.filter(Creature::alive).forEach { c1 ->
             creatures.filter(Creature::alive).filter { it !== c1 }.forEach { c2 ->
@@ -92,6 +98,6 @@ class World(
             }
         }
 
-        creatures.forEach { c: Creature -> c.updateRayData(this) }
+        creatures.forEach { it.updateRayData(this) }
     }
 }
