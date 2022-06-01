@@ -43,15 +43,15 @@ class GuiApp private constructor() {
         world += Wall(DoublePoint(0, world.height), DoublePoint(world.width, world.height))
         world += Wall(DoublePoint(world.width, world.height), DoublePoint(world.width, 0))
         world += Wall(DoublePoint(world.width, 0), DoublePoint())
-        world += FoodSpawner(DoublePoint(0, 0), DoublePoint(world.width, world.height), 10.0, 15.0, 10000)
+        world += FoodSpawner(DoublePoint(0, 0), DoublePoint(world.width, world.height), 20.0, 15.0, 2000)
         repeat(32) {
             world += CreatureSpawner(
                 DoublePoint(150 + 250.0 * it, 2500 + 1500 * sin(200.0*it)),
                 Color(0f, 0.5f, 0f),
                 1,
-                6,
+                5,
                 1000.0,
-                8,
+                10,
                 50.0, 200.0,
                 50.0, 100.0,
                 50.0,

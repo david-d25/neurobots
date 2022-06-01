@@ -5,6 +5,7 @@ import space.davids_digital.neurobots.geom.DoublePoint
 import space.davids_digital.neurobots.geom.GeometryUtils
 import space.davids_digital.neurobots.geom.Line
 import java.awt.Color
+import java.lang.Math.random
 import java.util.*
 import kotlin.math.*
 
@@ -23,6 +24,7 @@ class Creature(
     var fov: Double
 ): WorldObject() {
     var alive = true
+    var lifetime = 0.0
 
     @Transient
     val wallRayData: DoubleArray = DoubleArray(raysNumber)
@@ -57,6 +59,9 @@ class Creature(
         }
         if (output[3] > 0.5)
             divide(world)
+
+        lifetime += delta
+        changeHealth(-exp(lifetime/10000)*delta/1000000000)
     }
 
     fun changeEnergy(delta: Double) {
@@ -81,19 +86,22 @@ class Creature(
         val newCreature = Creature(
             neuralNetwork.copy().mutate(0.001),
             color,
-            position.copy(),
+            position.copy().also {
+                it.x += 200 - random()*400
+                it.y += 200 - random()*400
+            },
             visionDistance,
             raysNumber,
             angle,
-            energy,
+            energy/2,
             maxEnergy,
             health,
             maxHealth,
             radius,
             fov
         )
-        newCreature.changeEnergy(-maxEnergy/2)
-        changeEnergy(-maxEnergy/2)
+        newCreature.changeEnergy(-maxEnergy/12)
+        changeEnergy(- energy/2 - maxEnergy/12)
         world += newCreature
     }
 
