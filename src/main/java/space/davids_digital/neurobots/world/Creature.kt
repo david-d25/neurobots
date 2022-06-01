@@ -1,9 +1,6 @@
 package space.davids_digital.neurobots.world
 
-import space.davids_digital.neurobots.geom.Circle
-import space.davids_digital.neurobots.geom.DoublePoint
-import space.davids_digital.neurobots.geom.GeometryUtils
-import space.davids_digital.neurobots.geom.Line
+import space.davids_digital.neurobots.geom.*
 import java.awt.Color
 import java.lang.Math.random
 import java.util.*
@@ -21,8 +18,10 @@ class Creature(
     var health: Double,
     var maxHealth: Double,
     var radius: Double,
-    var fov: Double
-): WorldObject() {
+    var fov: Double,
+): WorldObject(), WorldAware, RigidBody, Updatable {
+    override var world: World = World.NULL
+
     var alive = true
     var lifetime = 0.0
 
@@ -62,6 +61,13 @@ class Creature(
 
         lifetime += delta
         changeHealth(-exp(lifetime/10000)*delta/1000000000)
+    }
+
+    override fun getAabb(): Aabb {
+        return Aabb(
+            DoublePoint(position.x - radius, position.y - radius),
+            DoublePoint(position.x + radius, position.y + radius)
+        )
     }
 
     fun changeEnergy(delta: Double) {

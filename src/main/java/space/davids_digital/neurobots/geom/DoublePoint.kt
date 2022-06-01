@@ -3,7 +3,7 @@ package space.davids_digital.neurobots.geom
 import kotlin.math.pow
 import kotlin.math.sqrt
 
-class DoublePoint(var x: Double = 0.0, var y: Double = 0.0) {
+data class DoublePoint(var x: Double = 0.0, var y: Double = 0.0) {
 
     constructor(x: Int, y: Int): this(x.toDouble(), y.toDouble())
 

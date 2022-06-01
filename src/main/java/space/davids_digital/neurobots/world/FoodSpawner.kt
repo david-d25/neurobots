@@ -8,7 +8,7 @@ class FoodSpawner(
     val energy: Double,
     val ratio: Double,
     val initialNumber: Int = 0
-): WorldObject() {
+): WorldObject(), WorldAware, Updatable {
     private var timePassed = 0.0
 
     override var world: World = World.NULL

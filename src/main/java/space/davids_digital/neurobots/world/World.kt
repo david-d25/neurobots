@@ -18,11 +18,12 @@ class World(
 ) {
     val walls: MutableList<Wall> = mutableListOf()
     val creatures: MutableList<Creature> = CopyOnWriteArrayList()
-    val bullets: MutableList<Bullet> = mutableListOf()
     val creatureSpawners: MutableList<CreatureSpawner> = mutableListOf()
-    val foodSpawners: MutableList<FoodSpawner> = mutableListOf()
     val food: MutableList<Food> = mutableListOf()
-    val objects: ConcurrentLinkedQueue<WorldObject> = ConcurrentLinkedQueue()
+
+    private val objects: ConcurrentLinkedQueue<WorldObject> = ConcurrentLinkedQueue()
+    private val updateList: ConcurrentLinkedQueue<Updatable> = ConcurrentLinkedQueue()
+    private val rigidBodies: ConcurrentLinkedQueue<RigidBody> = ConcurrentLinkedQueue()
     var paused = false
 
     fun update(delta: Double) {
@@ -30,7 +31,7 @@ class World(
         if (creatures.size == 0)
             creatureSpawners.forEach(CreatureSpawner::spawn)
 
-        objects.forEach { it.update(delta) }
+        updateList.forEach { it.update(delta) }
 
         creatures.filter { !it.alive }.forEach { remove(it) }
 
@@ -103,20 +104,22 @@ class World(
     }
 
     fun add(worldObject: WorldObject) {
-        worldObject.world = this
         objects += worldObject
         if (worldObject is Wall)
             walls += worldObject
         if (worldObject is Creature)
             creatures += worldObject
-        if (worldObject is Bullet)
-            bullets += worldObject
         if (worldObject is CreatureSpawner)
             creatureSpawners += worldObject
-        if (worldObject is FoodSpawner)
-            foodSpawners += worldObject
+        if (worldObject is RigidBody)
+            rigidBodies += worldObject
+        if (worldObject is Updatable)
+            updateList += worldObject
         if (worldObject is Food)
             food += worldObject
+
+        if (worldObject is WorldAware)
+            worldObject.world = this
     }
 
     fun remove(worldObject: WorldObject) {
@@ -125,14 +128,17 @@ class World(
             walls -= worldObject
         if (worldObject is Creature)
             creatures -= worldObject
-        if (worldObject is Bullet)
-            bullets -= worldObject
         if (worldObject is CreatureSpawner)
             creatureSpawners -= worldObject
-        if (worldObject is FoodSpawner)
-            foodSpawners -= worldObject
+        if (worldObject is RigidBody)
+            rigidBodies -= worldObject
+        if (worldObject is Updatable)
+            updateList -= worldObject
         if (worldObject is Food)
             food -= worldObject
+
+        if (worldObject is WorldAware)
+            worldObject.world = NULL
     }
 
     companion object {

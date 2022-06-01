@@ -1,5 +1,6 @@
 package space.davids_digital.neurobots.world
 
+import space.davids_digital.neurobots.geom.Aabb
 import space.davids_digital.neurobots.geom.DoublePoint
 import java.awt.Color
 import java.lang.Math.PI
@@ -18,7 +19,8 @@ class CreatureSpawner (
     var maxHealth: Double,
     var radius: Double,
     var fov: Double,
-): WorldObject() {
+): WorldObject(), WorldAware {
+    override var world: World = World.NULL
     fun spawn() {
         world += Creature(
             NeuralNetwork(
