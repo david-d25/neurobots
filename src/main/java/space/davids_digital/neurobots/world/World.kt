@@ -1,7 +1,10 @@
 package space.davids_digital.neurobots.world
 
+import space.davids_digital.neurobots.geom.Aabb
 import space.davids_digital.neurobots.geom.GeometryUtils
+import space.davids_digital.neurobots.geom.KdTree
 import space.davids_digital.neurobots.geom.Line
+import java.util.LinkedList
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.math.min
@@ -24,16 +27,23 @@ class World(
     private val objects: ConcurrentLinkedQueue<WorldObject> = ConcurrentLinkedQueue()
     private val updateList: ConcurrentLinkedQueue<Updatable> = ConcurrentLinkedQueue()
     private val rigidBodies: ConcurrentLinkedQueue<RigidBody> = ConcurrentLinkedQueue()
+
+    val kdTree = KdTree(KdTree.Node(KdTree.Axis.X).also { it.objects = rigidBodies })
+
     var paused = false
 
     fun update(delta: Double) {
         if (paused) return
-        if (creatures.size == 0)
+        if (creatures.size == 0) {
             creatureSpawners.forEach(CreatureSpawner::spawn)
+            rebuildKdTree()
+        }
 
         updateList.forEach { it.update(delta) }
 
         creatures.filter { !it.alive }.forEach { remove(it) }
+
+        rebuildKdTree()
 
         creatures.forEach { creature ->
             creatures.filter { it !== creature }.forEach { innerCreature ->
@@ -96,14 +106,71 @@ class World(
             }
         }
 
+        rebuildKdTree()
+
         creatures.forEach { it.updateRayData(this) }
     }
 
-    operator fun plusAssign(worldObject: WorldObject) {
-        add(worldObject)
+    private fun rebuildKdTree() {
+        kdTree.root.left = null
+        kdTree.root.right = null
+        kdTree.root.final = true
+
+        val nodesStack = LinkedList<KdTree.Node>()
+        nodesStack.push(kdTree.root)
+
+        while (nodesStack.isNotEmpty()) {
+            val node = nodesStack.pop()
+
+            val sorted = node.objects.sortedBy {
+                if (node.axis == KdTree.Axis.X)
+                    it.aabb.center.x
+                else
+                    it.aabb.center.y
+            }
+
+            if (sorted.size < 2)
+                continue
+
+            val midPoint = (sorted[sorted.size/2].aabb.center + (sorted[sorted.size/2 - 1].aabb.center))/2
+
+            val splitLine: Double
+            val leftAabb: Aabb
+            val rightAabb: Aabb
+
+            if (node.axis == KdTree.Axis.X) {
+                splitLine = midPoint.x
+                leftAabb = Aabb(0, 0, splitLine, height)
+                rightAabb = Aabb(splitLine, 0, width, height)
+            } else {
+                splitLine = midPoint.y
+                leftAabb = Aabb(0, 0, width, splitLine)
+                rightAabb = Aabb(0, splitLine, width, height)
+            }
+
+            val leftList = mutableListOf<RigidBody>()
+            val rightList = mutableListOf<RigidBody>()
+
+            sorted.forEach {
+                if (GeometryUtils.intersects(it.aabb, leftAabb))
+                    leftList.add(it)
+                if (GeometryUtils.intersects(it.aabb, rightAabb))
+                    rightList.add(it)
+            }
+
+            if (leftList.size > 1 && rightList.size > 1 && leftList.size < sorted.size && rightList.size < sorted.size) {
+                node.final = false
+                val newAxis = if (node.axis == KdTree.Axis.X) KdTree.Axis.Y else KdTree.Axis.X
+                node.left = KdTree.Node(newAxis, leftList)
+                node.right = KdTree.Node(newAxis, rightList)
+                node.splitLine = splitLine
+                nodesStack.push(node.left)
+                nodesStack.push(node.right)
+            }
+        }
     }
 
-    fun add(worldObject: WorldObject) {
+    private fun add(worldObject: WorldObject) {
         objects += worldObject
         if (worldObject is Wall)
             walls += worldObject
@@ -122,7 +189,7 @@ class World(
             worldObject.world = this
     }
 
-    fun remove(worldObject: WorldObject) {
+    private fun remove(worldObject: WorldObject) {
         objects -= worldObject
         if (worldObject is Wall)
             walls -= worldObject
@@ -139,6 +206,14 @@ class World(
 
         if (worldObject is WorldAware)
             worldObject.world = NULL
+    }
+
+    operator fun plusAssign(worldObject: WorldObject) {
+        add(worldObject)
+    }
+
+    operator fun minusAssign(worldObject: WorldObject) {
+        remove(worldObject)
     }
 
     companion object {

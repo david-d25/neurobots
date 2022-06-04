@@ -63,7 +63,7 @@ class Creature(
         changeHealth(-exp(lifetime/10000)*delta/1000000000)
     }
 
-    override fun getAabb(): Aabb {
+    override val aabb: Aabb get() {
         return Aabb(
             DoublePoint(position.x - radius, position.y - radius),
             DoublePoint(position.x + radius, position.y + radius)

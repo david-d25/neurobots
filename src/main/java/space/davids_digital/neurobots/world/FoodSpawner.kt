@@ -20,6 +20,7 @@ class FoodSpawner(
         }
 
     override fun update(delta: Double) {
+        if (ratio == 0.0) return
         timePassed += delta
         while (timePassed > 1000/ratio) {
             spawn()

@@ -1,5 +1,7 @@
 package space.davids_digital.neurobots.geom;
 
+import kotlin.jvm.PurelyImplements;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -31,6 +33,13 @@ public class GeometryUtils {
         if (Math.abs(intersection.getX() - line.getMiddle().getX()) <= lineAabb.getX()/2 && Math.abs(intersection.getY()) - line.getMiddle().getY() <= lineAabb.getY()/2)
             return intersection;
         return null;
+    }
+
+    public static boolean intersects(Aabb a, Aabb b) {
+        return  a.getMin().getX() < b.getMax().getX() &&
+                a.getMax().getX() > b.getMin().getX() &&
+                a.getMin().getY() < b.getMax().getY() &&
+                a.getMax().getY() > b.getMin().getY();
     }
 
     public static Set<DoublePoint> intersections(Line line, Circle circle) {

@@ -1,9 +1,13 @@
 package space.davids_digital.neurobots.gui
 
+import space.davids_digital.neurobots.game.Config
+import space.davids_digital.neurobots.geom.Aabb
+import space.davids_digital.neurobots.geom.KdTree
 import space.davids_digital.neurobots.world.World
 import java.awt.*
 import java.awt.event.*
 import java.awt.geom.*
+import java.util.LinkedList
 import javax.swing.JPanel
 import kotlin.math.cos
 import kotlin.math.max
@@ -11,6 +15,7 @@ import kotlin.math.sin
 
 class WorldViewer(
     var world: World,
+    var config: Config,
 ): JPanel(), MouseListener, MouseMotionListener, MouseWheelListener, ComponentListener {
     private var cameraX = world.width/2.toDouble()
     private var cameraY = world.height/2.toDouble()
@@ -154,15 +159,44 @@ class WorldViewer(
             ))
         }
 
+        if (config.showSpacePartitioning) {
+            val nodesStack = LinkedList<KdTree.Node>()
+            val boxesStack = LinkedList<Aabb>()
+            nodesStack.push(world.kdTree.root)
+            boxesStack.push(Aabb(0, 0, world.width, world.height))
+
+            while (nodesStack.isNotEmpty()) {
+                val node = nodesStack.pop()
+                val box = boxesStack.pop()
+
+                if (!node.final) {
+                    nodesStack.push(node.left!!)
+                    nodesStack.push(node.right!!)
+
+                    if (node.axis == KdTree.Axis.X) {
+                        boxesStack.push(Aabb(box.min.x, box.min.y, node.splitLine, box.max.y))
+                        boxesStack.push(Aabb(node.splitLine, box.min.y, box.max.x, box.max.y))
+                    } else {
+                        boxesStack.push(Aabb(box.min.x, box.min.y, box.max.x, node.splitLine))
+                        boxesStack.push(Aabb(box.min.x, node.splitLine, box.max.x, box.max.y))
+                    }
+                }
+
+                if (node.axis == KdTree.Axis.X) {
+                    g.color = Color.BLUE.darker()
+                    g.draw(Line2D.Double(node.splitLine, box.min.y, node.splitLine, box.max.y))
+                } else {
+                    g.color = Color.RED.darker()
+                    g.draw(Line2D.Double(box.min.x, node.splitLine, box.max.x, node.splitLine))
+                }
+            }
+        }
+
         g.color = Color.BLACK
         g.transform = AffineTransform()
         g.font = Font("Arial", Font.PLAIN, 18)
         g.drawString("${String.format("%.1f", 1000000000.0/(System.nanoTime() - lastPaint))} FPS", 0, 18)
         lastPaint = System.nanoTime()
-    }
-
-    fun update(delta: Double) {
-
     }
 
     override fun mouseWheelMoved(e: MouseWheelEvent) {
