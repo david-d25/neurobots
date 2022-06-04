@@ -167,7 +167,11 @@ class WorldViewer(
 
     override fun mouseWheelMoved(e: MouseWheelEvent) {
         val rotation = e.preciseWheelRotation
+        val oldViewportHeight = viewportHeight
         viewportHeight *= if (rotation < 0) -1/(rotation/4 - 1) else rotation/4 + 1
+        val viewportHeightDifference = oldViewportHeight - viewportHeight
+        cameraX += viewportHeightDifference*(e.point.x - width/2)/height
+        cameraY += viewportHeightDifference*(e.point.y - height/2)/height
         updateCameraTransform()
     }
 
