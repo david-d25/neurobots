@@ -19,7 +19,7 @@ class Creature(
     var maxHealth: Double,
     var radius: Double,
     var fov: Double,
-): WorldObject(), WorldAware, RigidBody, Updatable {
+): WorldObject(), WorldAware, PhysicalBody, Updatable {
     override var world: World = World.NULL
 
     var alive = true
@@ -111,7 +111,7 @@ class Creature(
         world += newCreature
     }
 
-    fun updateRayData(world: World) {
+    fun updateRayData() {
         val x = position.x
         val y = position.y
         Arrays.fill(creatureRayData, 0.0)
@@ -128,41 +128,27 @@ class Creature(
                 )
             )
 
-            world.creatures.filter { it.alive && it !== this }.forEach { creature ->
-                val intersectionPoints = GeometryUtils.intersections(rayLine, Circle(creature.position, creature.radius))
-                if (intersectionPoints.size == 1) {
-                    val collision = intersectionPoints.first()
-                    val distance = rayLine.pointA.distance(collision)
-                    creatureRayData[i] = max(creatureRayData[i], 1 - distance/rayLine.length)
-                } else if (intersectionPoints.size == 2) {
-                    val distance = min(
-                        rayLine.pointA.distance(intersectionPoints.first()),
-                        rayLine.pointA.distance(intersectionPoints.last())
-                    )
-                    creatureRayData[i] = max(creatureRayData[i], 1 - distance/rayLine.length)
-                }
-            }
+            val raycastResults = world.raycast(rayLine)
 
-            world.food.forEach { food ->
-                val intersectionPoints = GeometryUtils.intersections(rayLine, Circle(food.position, food.radius))
-                if (intersectionPoints.size == 1) {
-                    val collision = intersectionPoints.first()
-                    val distance = rayLine.pointA.distance(collision)
-                    foodRayData[i] = max(foodRayData[i], 1 - distance/rayLine.length)
-                } else if (intersectionPoints.size == 2) {
-                    val distance = min(
-                        rayLine.pointA.distance(intersectionPoints.first()),
-                        rayLine.pointA.distance(intersectionPoints.last())
-                    )
-                    foodRayData[i] = max(foodRayData[i], 1 - distance/rayLine.length)
-                }
-            }
+            raycastResults.forEach {
+                val target = it.target
+                val hits = it.hits
 
-            world.walls.forEach { wall ->
-                val wallLine = Line(wall.pointA, wall.pointB)
-                val intersections = GeometryUtils.intersections(wallLine, rayLine)
-                if (intersections.isNotEmpty()) {
-                    val intersection = intersections.stream().findFirst().get()
+                if (target is Food || target is Creature && target.alive && target !== this) {
+                    val rayDataRef = if (target is Food) foodRayData else creatureRayData
+                    if (hits.size == 1) {
+                        val collision = hits.first()
+                        val distance = rayLine.pointA.distance(collision)
+                        rayDataRef[i] = max(rayDataRef[i], 1 - distance/rayLine.length)
+                    } else if (hits.size == 2) {
+                        val distance = min(
+                            rayLine.pointA.distance(hits.first()),
+                            rayLine.pointA.distance(hits.last())
+                        )
+                        rayDataRef[i] = max(rayDataRef[i], 1 - distance/rayLine.length)
+                    }
+                } else if (target is Wall) {
+                    val intersection = hits.first()
                     val distance = sqrt(
                         (rayLine.pointA.x - intersection.x).pow(2.0) + (rayLine.pointA.y - intersection.y).pow(2.0)
                     )
@@ -172,6 +158,51 @@ class Creature(
                     wallRayData[i] = max(wallRayData[i], 1 - distance / maxDistance)
                 }
             }
+
+//            world.creatures.filter { it.alive && it !== this }.forEach { creature ->
+//                val intersectionPoints = GeometryUtils.surfaceIntersections(rayLine, Circle(creature.position, creature.radius))
+//                if (intersectionPoints.size == 1) {
+//                    val collision = intersectionPoints.first()
+//                    val distance = rayLine.pointA.distance(collision)
+//                    creatureRayData[i] = max(creatureRayData[i], 1 - distance/rayLine.length)
+//                } else if (intersectionPoints.size == 2) {
+//                    val distance = min(
+//                        rayLine.pointA.distance(intersectionPoints.first()),
+//                        rayLine.pointA.distance(intersectionPoints.last())
+//                    )
+//                    creatureRayData[i] = max(creatureRayData[i], 1 - distance/rayLine.length)
+//                }
+//            }
+//
+//            world.food.forEach { food ->
+//                val intersectionPoints = GeometryUtils.surfaceIntersections(rayLine, Circle(food.position, food.radius))
+//                if (intersectionPoints.size == 1) {
+//                    val collision = intersectionPoints.first()
+//                    val distance = rayLine.pointA.distance(collision)
+//                    foodRayData[i] = max(foodRayData[i], 1 - distance/rayLine.length)
+//                } else if (intersectionPoints.size == 2) {
+//                    val distance = min(
+//                        rayLine.pointA.distance(intersectionPoints.first()),
+//                        rayLine.pointA.distance(intersectionPoints.last())
+//                    )
+//                    foodRayData[i] = max(foodRayData[i], 1 - distance/rayLine.length)
+//                }
+//            }
+//
+//            world.walls.forEach { wall ->
+//                val wallLine = Line(wall.pointA, wall.pointB)
+//                val intersections = GeometryUtils.surfaceIntersections(wallLine, rayLine)
+//                if (intersections.isNotEmpty()) {
+//                    val intersection = intersections.stream().findFirst().get()
+//                    val distance = sqrt(
+//                        (rayLine.pointA.x - intersection.x).pow(2.0) + (rayLine.pointA.y - intersection.y).pow(2.0)
+//                    )
+//                    val maxDistance = sqrt(
+//                        (rayLine.pointA.x - rayLine.pointB.x).pow(2.0) + (rayLine.pointA.y - rayLine.pointB.y).pow(2.0)
+//                    )
+//                    wallRayData[i] = max(wallRayData[i], 1 - distance / maxDistance)
+//                }
+//            }
         }
 
 

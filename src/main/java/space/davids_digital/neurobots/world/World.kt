@@ -1,9 +1,6 @@
 package space.davids_digital.neurobots.world
 
-import space.davids_digital.neurobots.geom.Aabb
-import space.davids_digital.neurobots.geom.GeometryUtils
-import space.davids_digital.neurobots.geom.KdTree
-import space.davids_digital.neurobots.geom.Line
+import space.davids_digital.neurobots.geom.*
 import java.util.LinkedList
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CopyOnWriteArrayList
@@ -22,13 +19,13 @@ class World(
     val walls: MutableList<Wall> = mutableListOf()
     val creatures: MutableList<Creature> = CopyOnWriteArrayList()
     val creatureSpawners: MutableList<CreatureSpawner> = mutableListOf()
-    val food: MutableList<Food> = mutableListOf()
+    val food: ConcurrentLinkedQueue<Food> = ConcurrentLinkedQueue()
 
     private val objects: ConcurrentLinkedQueue<WorldObject> = ConcurrentLinkedQueue()
     private val updateList: ConcurrentLinkedQueue<Updatable> = ConcurrentLinkedQueue()
-    private val rigidBodies: ConcurrentLinkedQueue<RigidBody> = ConcurrentLinkedQueue()
+    private val physicalBodies: ConcurrentLinkedQueue<PhysicalBody> = ConcurrentLinkedQueue()
 
-    val kdTree = KdTree(KdTree.Node(KdTree.Axis.X).also { it.objects = rigidBodies })
+    val kdTree = KdTree(KdTree.Node(KdTree.Axis.X, Aabb(0, 0, width, height), physicalBodies))
 
     var paused = false
 
@@ -40,75 +37,128 @@ class World(
         }
 
         updateList.forEach { it.update(delta) }
-
         creatures.filter { !it.alive }.forEach { remove(it) }
 
         rebuildKdTree()
 
         creatures.forEach { creature ->
-            creatures.filter { it !== creature }.forEach { innerCreature ->
-                val distance = creature.position.distance(innerCreature.position)
-                val sin = (innerCreature.position.y - creature.position.y) / distance
-                val cos = (innerCreature.position.x - creature.position.x) / distance
-                if (sin.isFinite() && cos.isFinite() && distance < creature.radius + innerCreature.radius) {
-                    val offset = creature.radius + innerCreature.radius - distance
-                    creature.position.x -= offset * cos
-                    creature.position.y -= offset * sin
-                    innerCreature.position.x += offset * cos
-                    innerCreature.position.y += offset * sin
-                }
-            }
-            if (creature.position.x < creature.radius)
-                creature.position.x = creature.radius
-            if (creature.position.y < creature.radius)
-                creature.position.y = creature.radius
-            if (creature.position.x > width - creature.radius)
-                creature.position.x = width.toDouble() - creature.radius
-            if (creature.position.y > height - creature.radius)
-                creature.position.y = height.toDouble() - creature.radius
+            val intersectionCandidates = getIntersectionCandidates(creature)
 
-            walls.forEach { wall ->
-                val pointADistance = creature.position.distance(wall.pointA)
-                val pointBDistance = creature.position.distance(wall.pointB)
-                val nearestEdgeDistance = min(pointADistance, pointBDistance)
-                val intersection = GeometryUtils.getLinePerpendicularIntersectionPoint(
-                    Line(wall.pointA, wall.pointB), creature.position
-                )
-                var perpendicularLength: Double? = null
-                if (intersection != null)
-                    perpendicularLength = creature.position.distance(intersection)
-                if (nearestEdgeDistance < creature.radius ||
-                    perpendicularLength != null && perpendicularLength < creature.radius
-                ) {
-                    val offset = if (perpendicularLength != null && perpendicularLength < nearestEdgeDistance) {
-                        creature.position - intersection!!
-                    } else {
-                        val nearestPoint = if (pointADistance < pointBDistance) wall.pointA else wall.pointB
-                        creature.position - nearestPoint
+            intersectionCandidates.forEach {
+                if (it is Creature) {
+                    val distance = creature.position.distance(it.position)
+                    val sin = (it.position.y - creature.position.y) / distance
+                    val cos = (it.position.x - creature.position.x) / distance
+                    if (sin.isFinite() && cos.isFinite() && distance < creature.radius + it.radius) {
+                        val offset = creature.radius + it.radius - distance
+                        creature.position.x -= offset * cos
+                        creature.position.y -= offset * sin
+                        it.position.x += offset * cos
+                        it.position.y += offset * sin
                     }
-                    val sin = offset.y / sqrt(offset.x.pow(2) + offset.y.pow(2))
-                    val cos = sqrt(1 - sin*sin)
-                    creature.position.x += creature.radius * sign(offset.x) * cos - offset.x
-                    creature.position.y += creature.radius * sin - offset.y
+                } else if (it is Wall) {
+                    val pointADistance = creature.position.distance(it.pointA)
+                    val pointBDistance = creature.position.distance(it.pointB)
+                    val nearestEdgeDistance = min(pointADistance, pointBDistance)
+                    val intersection = GeometryUtils.getLinePerpendicularIntersectionPoint(
+                        Line(it.pointA, it.pointB), creature.position
+                    )
+                    var perpendicularLength: Double? = null
+                    if (intersection != null)
+                        perpendicularLength = creature.position.distance(intersection)
+                    if (nearestEdgeDistance < creature.radius ||
+                        perpendicularLength != null && perpendicularLength < creature.radius
+                    ) {
+                        val offset = if (perpendicularLength != null && perpendicularLength < nearestEdgeDistance) {
+                            creature.position - intersection!!
+                        } else {
+                            val nearestPoint = if (pointADistance < pointBDistance) it.pointA else it.pointB
+                            creature.position - nearestPoint
+                        }
+                        val sin = offset.y / sqrt(offset.x.pow(2) + offset.y.pow(2))
+                        val cos = sqrt(1 - sin*sin)
+                        creature.position.x += creature.radius * sign(offset.x) * cos - offset.x
+                        creature.position.y += creature.radius * sin - offset.y
+                    }
+                } else if (it is Food) {
+                    val distance = creature.position.distance(it.position)
+                    val sin = (it.position.y - creature.position.y) / distance
+                    val cos = (it.position.x - creature.position.x) / distance
+                    if (sin.isFinite() && cos.isFinite() && distance < creature.radius + it.radius) {
+                        this -= it
+                        creature.changeEnergy(it.energy)
+                    }
                 }
             }
 
-            val iterator = food.iterator()
-            while (iterator.hasNext()) {
-                val f = iterator.next()
-                val distance = creature.position.distance(f.position)
-                val sin = (f.position.y - creature.position.y) / distance
-                val cos = (f.position.x - creature.position.x) / distance
-                if (sin.isFinite() && cos.isFinite() && distance < creature.radius + f.radius) {
-                    iterator.remove()
-                    creature.changeEnergy(f.energy)
+            creature.position.x = creature.position.x.coerceIn(creature.radius, width - creature.radius)
+            creature.position.y = creature.position.y.coerceIn(creature.radius, height - creature.radius)
+        }
+
+        rebuildKdTree()
+        creatures.forEach(Creature::updateRayData)
+    }
+
+    private fun getIntersectionCandidates(physicalBody: PhysicalBody): Set<PhysicalBody> {
+        val candidates = mutableSetOf<PhysicalBody>()
+        val nodesStack = LinkedList<KdTree.Node>()
+        nodesStack.push(kdTree.root)
+        while (nodesStack.isNotEmpty()) {
+            val node = nodesStack.pop()
+
+            if (node.objects.contains(physicalBody)) {
+                if (node.final) {
+                    candidates += node.objects
+                } else {
+                    nodesStack.push(node.left)
+                    nodesStack.push(node.right)
+                }
+            }
+        }
+        candidates -= physicalBody
+        return candidates
+    }
+
+    fun raycast(rayLine: Line): Set<RaycastResult> {
+        val candidates = mutableSetOf<PhysicalBody>()
+
+        val nodesStack = LinkedList<KdTree.Node>()
+        nodesStack.push(kdTree.root)
+
+        while (nodesStack.isNotEmpty()) {
+            val node = nodesStack.pop()
+
+            if (GeometryUtils.isInside(rayLine.pointA, node.aabb) ||
+                GeometryUtils.isInside(rayLine.pointB, node.aabb) ||
+                GeometryUtils.areSurfacesIntersecting(rayLine, node.aabb)
+            ) {
+                if (!node.final) {
+                    nodesStack.push(node.left)
+                    nodesStack.push(node.right)
+                } else {
+                    candidates += node.objects
                 }
             }
         }
 
-        rebuildKdTree()
-
-        creatures.forEach { it.updateRayData(this) }
+        val result = mutableSetOf<RaycastResult>()
+        candidates.forEach {
+            if (it is Wall) {
+                val hits = GeometryUtils.surfaceIntersections(rayLine, Line(it.pointA, it.pointB))
+                if (hits.isNotEmpty())
+                    result += RaycastResult(it, hits)
+            } else if (it is Creature) {
+                val hits = GeometryUtils.surfaceIntersections(rayLine, Circle(it.position, it.radius))
+                if (hits.isNotEmpty())
+                    result += RaycastResult(it, hits)
+            } else if (it is Food) {
+                val hits = GeometryUtils.surfaceIntersections(rayLine, Circle(it.position, it.radius))
+                if (hits.isNotEmpty())
+                    result += RaycastResult(it, hits)
+            }
+            // TODO
+        }
+        return result
     }
 
     private fun rebuildKdTree() {
@@ -140,29 +190,29 @@ class World(
 
             if (node.axis == KdTree.Axis.X) {
                 splitLine = midPoint.x
-                leftAabb = Aabb(0, 0, splitLine, height)
-                rightAabb = Aabb(splitLine, 0, width, height)
+                leftAabb = Aabb(node.aabb.min.x, node.aabb.min.y, splitLine, node.aabb.max.y)
+                rightAabb = Aabb(splitLine, node.aabb.min.y, node.aabb.max.x, node.aabb.max.y)
             } else {
                 splitLine = midPoint.y
-                leftAabb = Aabb(0, 0, width, splitLine)
-                rightAabb = Aabb(0, splitLine, width, height)
+                leftAabb = Aabb(node.aabb.min.x, node.aabb.min.y, node.aabb.max.x, splitLine)
+                rightAabb = Aabb(node.aabb.min.x, splitLine, node.aabb.max.x, node.aabb.max.y)
             }
 
-            val leftList = mutableListOf<RigidBody>()
-            val rightList = mutableListOf<RigidBody>()
+            val leftList = mutableListOf<PhysicalBody>()
+            val rightList = mutableListOf<PhysicalBody>()
 
             sorted.forEach {
-                if (GeometryUtils.intersects(it.aabb, leftAabb))
+                if (GeometryUtils.areVolumesIntersecting(it.aabb, leftAabb))
                     leftList.add(it)
-                if (GeometryUtils.intersects(it.aabb, rightAabb))
+                if (GeometryUtils.areVolumesIntersecting(it.aabb, rightAabb))
                     rightList.add(it)
             }
 
-            if (leftList.size > 1 && rightList.size > 1 && leftList.size < sorted.size && rightList.size < sorted.size) {
+            if (leftList.size > 0 && rightList.size > 0 && leftList.size < sorted.size && rightList.size < sorted.size) {
                 node.final = false
                 val newAxis = if (node.axis == KdTree.Axis.X) KdTree.Axis.Y else KdTree.Axis.X
-                node.left = KdTree.Node(newAxis, leftList)
-                node.right = KdTree.Node(newAxis, rightList)
+                node.left = KdTree.Node(newAxis, leftAabb, leftList)
+                node.right = KdTree.Node(newAxis, rightAabb, rightList)
                 node.splitLine = splitLine
                 nodesStack.push(node.left)
                 nodesStack.push(node.right)
@@ -178,8 +228,8 @@ class World(
             creatures += worldObject
         if (worldObject is CreatureSpawner)
             creatureSpawners += worldObject
-        if (worldObject is RigidBody)
-            rigidBodies += worldObject
+        if (worldObject is PhysicalBody)
+            physicalBodies += worldObject
         if (worldObject is Updatable)
             updateList += worldObject
         if (worldObject is Food)
@@ -197,8 +247,8 @@ class World(
             creatures -= worldObject
         if (worldObject is CreatureSpawner)
             creatureSpawners -= worldObject
-        if (worldObject is RigidBody)
-            rigidBodies -= worldObject
+        if (worldObject is PhysicalBody)
+            physicalBodies -= worldObject
         if (worldObject is Updatable)
             updateList -= worldObject
         if (worldObject is Food)
@@ -219,4 +269,6 @@ class World(
     companion object {
         val NULL = World(0, 0, 0.0, 0.0, 0.0)
     }
+
+    data class RaycastResult(val target: PhysicalBody, val hits: Set<DoublePoint>)
 }

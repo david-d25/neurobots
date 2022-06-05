@@ -23,7 +23,10 @@ class WorldViewer(
     private val cameraTransform = AffineTransform()
     private var lastMousePosition = Point()
     private var isDragging = false
-    private var lastPaint: Long = 0
+
+    private var fpsCounterTicks = 0
+    private var fpsCounterLastTime = System.nanoTime()
+    private var fpsCounterLastFps = 0.0
 
     init {
         addMouseMotionListener(this)
@@ -161,42 +164,36 @@ class WorldViewer(
 
         if (config.showSpacePartitioning) {
             val nodesStack = LinkedList<KdTree.Node>()
-            val boxesStack = LinkedList<Aabb>()
             nodesStack.push(world.kdTree.root)
-            boxesStack.push(Aabb(0, 0, world.width, world.height))
 
             while (nodesStack.isNotEmpty()) {
                 val node = nodesStack.pop()
-                val box = boxesStack.pop()
 
                 if (!node.final) {
-                    nodesStack.push(node.left!!)
-                    nodesStack.push(node.right!!)
-
-                    if (node.axis == KdTree.Axis.X) {
-                        boxesStack.push(Aabb(box.min.x, box.min.y, node.splitLine, box.max.y))
-                        boxesStack.push(Aabb(node.splitLine, box.min.y, box.max.x, box.max.y))
-                    } else {
-                        boxesStack.push(Aabb(box.min.x, box.min.y, box.max.x, node.splitLine))
-                        boxesStack.push(Aabb(box.min.x, node.splitLine, box.max.x, box.max.y))
-                    }
+                    nodesStack.push(node.left)
+                    nodesStack.push(node.right)
                 }
 
                 if (node.axis == KdTree.Axis.X) {
                     g.color = Color.BLUE.darker()
-                    g.draw(Line2D.Double(node.splitLine, box.min.y, node.splitLine, box.max.y))
+                    g.draw(Line2D.Double(node.splitLine, node.aabb.min.y, node.splitLine, node.aabb.max.y))
                 } else {
                     g.color = Color.RED.darker()
-                    g.draw(Line2D.Double(box.min.x, node.splitLine, box.max.x, node.splitLine))
+                    g.draw(Line2D.Double(node.aabb.min.x, node.splitLine, node.aabb.max.x, node.splitLine))
                 }
             }
         }
 
+        if (System.nanoTime() - fpsCounterLastTime > 100000000) {
+            fpsCounterLastFps = fpsCounterTicks.toDouble()/(System.nanoTime() - fpsCounterLastTime)*1000000000
+            fpsCounterLastTime = System.nanoTime()
+            fpsCounterTicks = 0
+        }
         g.color = Color.BLACK
         g.transform = AffineTransform()
         g.font = Font("Arial", Font.PLAIN, 18)
-        g.drawString("${String.format("%.1f", 1000000000.0/(System.nanoTime() - lastPaint))} FPS", 0, 18)
-        lastPaint = System.nanoTime()
+        g.drawString("${String.format("%.1f", fpsCounterLastFps)} FPS", 0, 18)
+        fpsCounterTicks++
     }
 
     override fun mouseWheelMoved(e: MouseWheelEvent) {

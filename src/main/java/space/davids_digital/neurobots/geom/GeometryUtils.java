@@ -1,7 +1,5 @@
 package space.davids_digital.neurobots.geom;
 
-import kotlin.jvm.PurelyImplements;
-
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -35,14 +33,14 @@ public class GeometryUtils {
         return null;
     }
 
-    public static boolean intersects(Aabb a, Aabb b) {
+    public static boolean areVolumesIntersecting(Aabb a, Aabb b) {
         return  a.getMin().getX() < b.getMax().getX() &&
-                a.getMax().getX() > b.getMin().getX() &&
+                a.getMax().getX() >= b.getMin().getX() &&
                 a.getMin().getY() < b.getMax().getY() &&
-                a.getMax().getY() > b.getMin().getY();
+                a.getMax().getY() >= b.getMin().getY();
     }
 
-    public static Set<DoublePoint> intersections(Line line, Circle circle) {
+    public static Set<DoublePoint> surfaceIntersections(Line line, Circle circle) {
         DoublePoint v1 = line.getPointB().minus(line.getPointA());
         DoublePoint v2 = line.getPointA().minus(circle.getPosition());
         double b = -2 * (v1.getX() * v2.getX() + v1.getY() * v2.getY());
@@ -68,7 +66,25 @@ public class GeometryUtils {
         return result;
     }
 
-    public static Set<DoublePoint> intersections(Line lineA, Line lineB) {
+    public static boolean isInside(DoublePoint point, Aabb aabb) {
+        return  point.getX() >= aabb.getMin().getX() &&
+                point.getY() >= aabb.getMin().getY() &&
+                point.getX() < aabb.getMax().getX() &&
+                point.getY() < aabb.getMax().getY();
+    }
+
+    public static boolean isInside(DoublePoint point, Circle circle) {
+        return point.distance(circle.getPosition()) < circle.getRadius();
+    }
+
+    public static boolean areSurfacesIntersecting(Line line, Aabb aabb) {
+        return  !verticalLineIntersection(new Line(aabb.getMin().getX(), aabb.getMin().getY(), aabb.getMin().getX(), aabb.getMax().getY()), line).isEmpty() ||
+                !verticalLineIntersection(new Line(aabb.getMax().getX(), aabb.getMin().getY(), aabb.getMax().getX(), aabb.getMax().getY()), line).isEmpty() ||
+                !surfaceIntersections(new Line(aabb.getMin().getX(), aabb.getMin().getY(), aabb.getMax().getX(), aabb.getMin().getY()), line).isEmpty() ||
+                !surfaceIntersections(new Line(aabb.getMin().getX(), aabb.getMax().getY(), aabb.getMax().getX(), aabb.getMax().getY()), line).isEmpty();
+    }
+
+    public static Set<DoublePoint> surfaceIntersections(Line lineA, Line lineB) {
         double angle1Ratio = (lineA.getPointB().getY() - lineA.getPointA().getY()) / (lineA.getPointB().getX() - lineA.getPointA().getX());
         double angle2Ratio = (lineB.getPointB().getY() - lineB.getPointA().getY()) / (lineB.getPointB().getX() - lineB.getPointA().getX());
 
@@ -117,6 +133,8 @@ public class GeometryUtils {
     }
 
     private static Set<DoublePoint> verticalLineIntersection(Line vertical, Line other) {
+        if (other.getPointA().getX() == other.getPointB().getX())
+            return Collections.emptySet();
         double otherAngleRatio = (other.getPointB().getY() - other.getPointA().getY()) / (other.getPointB().getX() - other.getPointA().getX());
         DoublePoint intersection = new DoublePoint(vertical.getPointA().getX(), 0);
         double line2Offset = other.getPointA().getY() - otherAngleRatio * other.getPointA().getX();
