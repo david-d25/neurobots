@@ -19,15 +19,16 @@ class CreatureSpawner (
     var maxHealth: Double,
     var radius: Double,
     var fov: Double,
+    var memorySize: Int,
 ): WorldObject(), WorldAware {
     override var world: World = World.NULL
     fun spawn() {
         world += Creature(
             NeuralNetwork(
-                raysNumber*3 + 3,
+                raysNumber*3 + memorySize + 3,
                 hiddenLayers,
                 hiddenLayerSize,
-                5,
+                memorySize + 5,
                 -0.5,
                 0.5
             ),
@@ -41,7 +42,8 @@ class CreatureSpawner (
             health,
             maxHealth,
             radius,
-            fov
+            fov,
+            memorySize
         )
     }
 }

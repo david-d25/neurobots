@@ -19,16 +19,17 @@ class Creature(
     var maxHealth: Double,
     var radius: Double,
     var fov: Double,
+    var memorySize: Int = 1,
 ): WorldObject(), WorldAware, PhysicalBody, Updatable {
     override var world: World = World.NULL
 
     var alive = true
     var lifetime = 0.0
 
-    @Transient
     val wallRayData: DoubleArray = DoubleArray(raysNumber)
     val creatureRayData: DoubleArray = DoubleArray(raysNumber)
     val foodRayData: DoubleArray = DoubleArray(raysNumber)
+    val memoryData: DoubleArray = DoubleArray(memorySize)
 
     override fun update(delta: Double) {
         if (!alive) return
@@ -36,9 +37,10 @@ class Creature(
         System.arraycopy(wallRayData, 0, input, 0, raysNumber)
         System.arraycopy(creatureRayData, 0, input, raysNumber, raysNumber)
         System.arraycopy(foodRayData, 0, input, raysNumber*2, raysNumber)
-        input[raysNumber*2] = energy / maxEnergy
-        input[raysNumber*2+1] = health / maxHealth
-        input[raysNumber*2+2] = 1.0
+        System.arraycopy(memoryData, 0, input, raysNumber*3, memoryData.size)
+        input[raysNumber*3+memorySize] = energy / maxEnergy
+        input[raysNumber*3+memorySize+1] = health / maxHealth
+        input[raysNumber*3+memorySize+2] = 1.0
         val output = neuralNetwork.getResponse(input)
         val forward = output[0] * delta
         val right = output[1] * delta
@@ -57,10 +59,13 @@ class Creature(
             changeHealth(healing)
         }
         if (output[3] > 0.5)
-            divide(world)
+            divide()
 
         lifetime += delta
         changeHealth(-exp(lifetime/10000)*delta/1000000000)
+
+        for (i in memoryData.indices)
+            memoryData[i] += output[3 + i]*delta/1000
     }
 
     override val aabb: Aabb get() {
@@ -88,14 +93,11 @@ class Creature(
             health = maxHealth
     }
 
-    private fun divide(world: World) {
+    fun divide() {
         val newCreature = Creature(
             neuralNetwork.copy().mutate(0.001),
             color,
-            position.copy().also {
-                it.x += 200 - random()*400
-                it.y += 200 - random()*400
-            },
+            DoublePoint(random()*world.width, random()*world.height),
             visionDistance,
             raysNumber,
             angle,

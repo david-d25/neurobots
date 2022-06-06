@@ -1,9 +1,12 @@
 package space.davids_digital.neurobots.gui
 
 import space.davids_digital.neurobots.game.Config
-import space.davids_digital.neurobots.geom.Aabb
+import space.davids_digital.neurobots.geom.DoublePoint
 import space.davids_digital.neurobots.geom.KdTree
+import space.davids_digital.neurobots.world.Creature
+import space.davids_digital.neurobots.world.PhysicalBody
 import space.davids_digital.neurobots.world.World
+import space.davids_digital.neurobots.world.WorldObject
 import java.awt.*
 import java.awt.event.*
 import java.awt.geom.*
@@ -27,6 +30,8 @@ class WorldViewer(
     private var fpsCounterTicks = 0
     private var fpsCounterLastTime = System.nanoTime()
     private var fpsCounterLastFps = 0.0
+
+    private var selection: WorldObject? = null
 
     init {
         addMouseMotionListener(this)
@@ -116,7 +121,7 @@ class WorldViewer(
 
             // Rays
             for (rayId in 0 until creature.raysNumber) {
-                val rayLength = max(
+                val raySignal = max(
                     creature.creatureRayData[rayId],
                     max(creature.wallRayData[rayId], creature.foodRayData[rayId])
                 )
@@ -125,16 +130,16 @@ class WorldViewer(
                 else
                     g.color = Color(
                         if (creature.creatureRayData[rayId] != 0.0) 1f else 0f,
-                        if (creature.foodRayData[rayId] != 0.0) 1f else 0f,
+                        if (creature.foodRayData[rayId] != 0.0) 0.5f else 0f,
                         if (creature.wallRayData[rayId] != 0.0) 1f else 0f,
-                        (0.25 + 0.75 * rayLength).toFloat()
+                        (0.25 + 0.75 * raySignal).toFloat()
                     )
                 val rayAngle = angle - creature.fov / 2 + creature.fov / creature.raysNumber * (rayId + 0.5)
                 g.draw(Line2D.Double(
-                    x + cos(rayAngle) * radius,
-                    y + sin(rayAngle) * radius,
-                    x + cos(rayAngle) * (radius + creature.visionDistance * (1 - rayLength)),
-                    y + sin(rayAngle) * (radius + creature.visionDistance * (1 - rayLength))
+                    x + cos(rayAngle) * (radius + 2),
+                    y + sin(rayAngle) * (radius + 2),
+                    x + cos(rayAngle) * (radius + creature.visionDistance * (1 - raySignal) - 2),
+                    y + sin(rayAngle) * (radius + creature.visionDistance * (1 - raySignal) - 2)
                 ))
             }
 
@@ -184,6 +189,39 @@ class WorldViewer(
             }
         }
 
+        if (selection is PhysicalBody) {
+            g.color = Color.ORANGE
+            g.stroke = BasicStroke(2f, 0, 0, 1f, arrayOf(5f, 5f).toFloatArray(), 0f)
+            val aabb = (selection as PhysicalBody).aabb
+            g.draw(Rectangle2D.Double(aabb.min.x, aabb.min.y, aabb.width, aabb.height))
+        }
+
+        g.stroke = BasicStroke(1f)
+        if (selection is Creature) {
+            val creature = selection as Creature
+            val y = creature.position.y + creature.radius + 40
+            val startX = creature.position.x - 100.0
+            val width = 200.0
+
+            for (rayId in 0 until creature.raysNumber) {
+                val raySignal = max(
+                    creature.creatureRayData[rayId],
+                    max(creature.wallRayData[rayId], creature.foodRayData[rayId])
+                )
+                g.color = Color(0f, 0f, 0f, 0.5f)
+                g.draw(Rectangle2D.Double(startX + rayId*width/creature.raysNumber, y, width/creature.raysNumber, 25.0))
+                if (creature.creatureRayData[rayId] == 0.0 && creature.wallRayData[rayId] == 0.0 && creature.foodRayData[rayId] == 0.0)
+                    g.color = Color(0f, 0f, 0f, .05f)
+                else
+                    g.color = Color(
+                        if (creature.creatureRayData[rayId] != 0.0) 1f else 0f,
+                        if (creature.foodRayData[rayId] != 0.0) 0.5f else 0f,
+                        if (creature.wallRayData[rayId] != 0.0) 1f else 0f
+                    )
+                g.fill(Rectangle2D.Double(startX + rayId*width/creature.raysNumber, y + 25.0*(1 - raySignal), width/creature.raysNumber, 25.0*raySignal))
+            }
+        }
+
         if (System.nanoTime() - fpsCounterLastTime > 100000000) {
             fpsCounterLastFps = fpsCounterTicks.toDouble()/(System.nanoTime() - fpsCounterLastTime)*1000000000
             fpsCounterLastTime = System.nanoTime()
@@ -194,6 +232,14 @@ class WorldViewer(
         g.font = Font("Arial", Font.PLAIN, 18)
         g.drawString("${String.format("%.1f", fpsCounterLastFps)} FPS", 0, 18)
         fpsCounterTicks++
+    }
+
+    fun update(delta: Double) {
+        if (selection is Creature) {
+            cameraX = (selection as Creature).position.x
+            cameraY = (selection as Creature).position.y
+            updateCameraTransform()
+        }
     }
 
     override fun mouseWheelMoved(e: MouseWheelEvent) {
@@ -218,7 +264,10 @@ class WorldViewer(
     override fun componentShown(e: ComponentEvent?) = updateCameraTransform()
     override fun componentMoved(e: ComponentEvent?) {}
     override fun componentHidden(e: ComponentEvent?) {}
-    override fun mouseClicked(e: MouseEvent) {}
+    override fun mouseClicked(e: MouseEvent) {
+        val worldPosition = cameraTransform.inverseTransform(e.point, null)
+        selection = world.creatures.firstOrNull { DoublePoint(worldPosition.x, worldPosition.y).distance(it.position) < it.radius }
+    }
 
     override fun mousePressed(e: MouseEvent) {
         isDragging = true

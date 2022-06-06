@@ -38,6 +38,8 @@ class World(
 
         updateList.forEach { it.update(delta) }
         creatures.filter { !it.alive }.forEach { remove(it) }
+        if (creatures.size == 1)
+            creatures.first().divide()
 
         rebuildKdTree()
 

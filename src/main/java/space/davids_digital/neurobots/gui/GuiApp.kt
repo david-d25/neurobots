@@ -6,6 +6,7 @@ import space.davids_digital.neurobots.world.*
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Dimension
+import java.lang.Math.random
 import javax.swing.JFrame
 import javax.swing.Timer
 import javax.swing.UIManager
@@ -41,24 +42,29 @@ class GuiApp private constructor() {
     }
 
     private fun initWorld() {
-        world = World(20000, 10000, 0.04, 0.04, 1.0)
-        world += Wall(0, 0,0, world.height)
-        world += Wall(0, world.height, world.width, world.height)
-        world += Wall(world.width, world.height, world.width, 0)
-        world += Wall(world.width, 0, 0, 0)
-        world += FoodSpawner(DoublePoint(0, 0), DoublePoint(world.width, world.height), 20.0, 15.0, 2000)
-        repeat(32) {
+        world = World(2000, 2000, 0.005, 0.2, 1.0)
+        val w = world.width - 1
+        val h = world.height - 1
+        world += Wall(0, 0, 0, h)
+        world += Wall(0, h, w, h)
+        world += Wall(w, h, w, 0)
+        world += Wall(w, 0, 0, 0)
+        world += Wall(w/2, h/2 - h/5, w/2, h/2 + h/5)
+        world += Wall(w/2 - w/5, h/2, w/2 + w/5, h/2)
+        world += FoodSpawner(DoublePoint(0, 0), DoublePoint(world.width, world.height), 20.0, 10.0, 100)
+        repeat(10) {
             world += CreatureSpawner(
-                DoublePoint(150 + world.width/33 * it, world.height/2 + 1000 * sin(200.0*it)),
-                Color(0f, 0.5f, 0f),
-                1,
-                5,
+                DoublePoint(random()*world.width, random()*world.height),
+                Color(random().toFloat(), random().toFloat(), random().toFloat()),
+                2,
+                8,
                 1000.0,
-                10,
+                7,
                 50.0, 200.0,
                 50.0, 100.0,
                 50.0,
-                Math.toRadians(75.0)
+                Math.toRadians(75.0),
+                4
             )
         }
     }
@@ -69,6 +75,7 @@ class GuiApp private constructor() {
             val delta = min(System.currentTimeMillis() - lastUpdate, 30.0)
             lastUpdate = System.currentTimeMillis().toDouble()
             world.update(delta)
+            worldViewer.update(delta)
         }
         timer.isRepeats = true
         timer.start()

@@ -1,5 +1,7 @@
 package space.davids_digital.neurobots.world
 
+import kotlin.math.abs
+import kotlin.math.sign
 import kotlin.math.tanh
 
 class NeuralNetwork(
@@ -36,6 +38,8 @@ class NeuralNetwork(
             for (neuronTo in weights[layerId].indices) {
                 for (neuronFrom in weights[layerId][neuronTo].indices) {
                     weights[layerId][neuronTo][neuronFrom] += maxMutation * (1 - 2 * Math.random())
+                    if (abs(weights[layerId][neuronTo][neuronFrom]) > 1)
+                        weights[layerId][neuronTo][neuronFrom] = sign(weights[layerId][neuronTo][neuronFrom])
                 }
             }
         }
